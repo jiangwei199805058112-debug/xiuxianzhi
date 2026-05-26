@@ -55,6 +55,11 @@ class Player:
     charm: int = 1
     dao_heart: int = 5
     intelligence: int = 0
+    talisman_guard: int = 0
+    talisman_fire: int = 0
+    talisman_avoid_fire: int = 0
+    talisman_break_armor: int = 0
+    black_market_clue: int = 0
     herbs: int = 3
     aged_herbs_10: int = 0
     aged_herbs_30: int = 0
@@ -130,6 +135,11 @@ class Player:
             "charm",
             "dao_heart",
             "intelligence",
+            "talisman_guard",
+            "talisman_fire",
+            "talisman_avoid_fire",
+            "talisman_break_armor",
+            "black_market_clue",
             "herbs",
             "aged_herbs_10",
             "aged_herbs_30",
@@ -196,6 +206,7 @@ class Player:
             f"战力：气血{self.hp}/{self.max_hp}｜灵力{self.mp}｜攻击{self.attack}｜防御{self.defense}｜身法{self.speed}\n"
             f"资质：体魄{self.physique}｜悟性{self.comprehension}｜斗法经验{self.combat_exp}｜修炼速度{self.cultivation_speed}\n"
             f"心性：神识{self.divine_sense}｜气运{self.luck}｜魅力{self.charm}｜道心{self.dao_heart}｜情报值{self.intelligence}\n"
+            f"符箓：护身符{self.talisman_guard}｜火弹符{self.talisman_fire}｜避火符{self.talisman_avoid_fire}｜破甲符{self.talisman_break_armor}｜黑市线索{self.black_market_clue}\n"
             f"资源：普通灵草{self.herbs}｜十年份灵草{self.aged_herbs_10}｜三十年份灵草{self.aged_herbs_30}｜灵石{self.spirit_stones}｜丹药{self.pills}｜家族贡献{self.contribution}\n"
             f"隐患：暴露度{self.exposure}｜心魔值{self.heart_demon}｜魔气值{self.demonic_qi}｜业力值{self.karma}\n"
             f"名声：正道声望{self.righteous_reputation}\n"
@@ -229,6 +240,11 @@ class Player:
             "charm": self.charm,
             "dao_heart": self.dao_heart,
             "intelligence": self.intelligence,
+            "talisman_guard": self.talisman_guard,
+            "talisman_fire": self.talisman_fire,
+            "talisman_avoid_fire": self.talisman_avoid_fire,
+            "talisman_break_armor": self.talisman_break_armor,
+            "black_market_clue": self.black_market_clue,
             "herbs": self.herbs,
             "aged_herbs_10": self.aged_herbs_10,
             "aged_herbs_30": self.aged_herbs_30,
@@ -281,6 +297,11 @@ class Player:
             charm=_int_from(data, "charm", 1),
             dao_heart=_int_from(data, "dao_heart", 5),
             intelligence=_int_from(data, "intelligence", 0),
+            talisman_guard=_int_from(data, "talisman_guard", 0),
+            talisman_fire=_int_from(data, "talisman_fire", 0),
+            talisman_avoid_fire=_int_from(data, "talisman_avoid_fire", 0),
+            talisman_break_armor=_int_from(data, "talisman_break_armor", 0),
+            black_market_clue=_int_from(data, "black_market_clue", 0),
             herbs=_int_from(data, "herbs", 3),
             aged_herbs_10=_int_from(data, "aged_herbs_10", 0),
             aged_herbs_30=_int_from(data, "aged_herbs_30", 0),

@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 from typing import Callable, Dict, List
 
-from data import ACTION_NAMES, ATTRIBUTE_NAMES, MARKET_PRICES, MONTHLY_EVENTS, NPCS
+from data import ACTION_NAMES, ATTRIBUTE_NAMES, MARKET_GOODS, MARKET_PRICES, MONTHLY_EVENTS, NPCS
 from player import Player
 
 
@@ -172,56 +172,95 @@ def _sell_aged_herb(player: Player, attr: str, label: str, price: int) -> str:
     return f"正常渠道已满，你转走黑市出售1株{label}，灵石+{black_price}，暴露度+5。"
 
 
-def action_market(player: Player) -> str:
+def _apply_market_good(player: Player, good: Dict[str, object]) -> None:
+    effects = good.get("effects", {})
+    if not isinstance(effects, dict):
+        return
+    for attr, value in effects.items():
+        if not isinstance(attr, str):
+            continue
+        if attr == "hp":
+            player.hp = min(player.max_hp, player.hp + int(value))
+        else:
+            setattr(player, attr, getattr(player, attr) + int(value))
+    player.clamp()
+
+
+def _buy_market_good(player: Player) -> str:
+    print("坊市货摊：")
+    for index, good in enumerate(MARKET_GOODS, start=1):
+        print(f"{index}. {good['name']}：{good['price']}灵石｜效果：{good['effect_text']}")
+    print("0. 返回")
+    choice = _read_choice("请选择商品：")
+    if not choice.isdigit():
+        return "你没有买东西，只在摊前看了几眼。"
+
+    index = int(choice)
+    if index == 0:
+        return "你离开货摊，没有买东西。"
+    if index < 1 or index > len(MARKET_GOODS):
+        return "坊市里没有这件商品。"
+
+    good = MARKET_GOODS[index - 1]
+    price = int(good["price"])
+    if player.spirit_stones < price:
+        return f"你灵石不足，买不起{good['name']}。"
+
+    player.spirit_stones -= price
+    _apply_market_good(player, good)
+    return f"你买下{good['name']}，花费灵石{price}。效果：{good['effect_text']}。"
+
+
+def _sell_herbs_market(player: Player) -> str:
     normal_price = MARKET_PRICES["普通灵草"]
     ten_price = MARKET_PRICES["十年份灵草"]
     thirty_price = MARKET_PRICES["三十年份灵草"]
-    print("坊市交易，每次行动交易一株：")
-    print(f"1. 买普通灵草：{normal_price}灵石")
-    print(f"2. 买十年份灵草：{ten_price}灵石")
-    print(f"3. 买三十年份灵草：{thirty_price}灵石")
-    print(f"4. 卖普通灵草：{normal_price}灵石")
-    print(f"5. 卖十年份灵草：{ten_price}灵石，超额走黑市")
-    print(f"6. 卖三十年份灵草：{thirty_price}灵石，超额走黑市")
+    print("出售灵草，每次行动出售一株：")
+    print(f"1. 普通灵草：{normal_price}灵石")
+    print(f"2. 十年份灵草：{ten_price}灵石，超额走黑市")
+    print(f"3. 三十年份灵草：{thirty_price}灵石，超额走黑市")
+    print("0. 返回")
     print(f"本月高年份灵草正常出售：{player.aged_herbs_sold_this_month}/3")
-    choice = _read_choice("请选择交易：")
+    choice = _read_choice("请选择出售项：")
 
     if choice == "1":
-        if player.spirit_stones < normal_price:
-            return "你灵石不足，买不起普通灵草。"
-        player.spirit_stones -= normal_price
-        player.herbs += 1
-        player.clamp()
-        return "你买下1株普通灵草。"
-    if choice == "2":
-        if player.spirit_stones < ten_price:
-            return "你灵石不足，买不起十年份灵草。"
-        player.spirit_stones -= ten_price
-        player.aged_herbs_10 += 1
-        player.clamp()
-        return "你买下1株十年份灵草。"
-    if choice == "3":
-        if player.spirit_stones < thirty_price:
-            return "你灵石不足，买不起三十年份灵草。"
-        player.spirit_stones -= thirty_price
-        player.aged_herbs_30 += 1
-        player.clamp()
-        return "你买下1株三十年份灵草。"
-    if choice == "4":
         if player.herbs <= 0:
             return "你没有可出售的普通灵草。"
         player.herbs -= 1
         player.spirit_stones += normal_price
         player.clamp()
         return "你出售1株普通灵草，灵石+2。"
-    if choice == "5":
+    if choice == "2":
         return _sell_aged_herb(player, "aged_herbs_10", "十年份灵草", ten_price)
-    if choice == "6":
+    if choice == "3":
         return _sell_aged_herb(player, "aged_herbs_30", "三十年份灵草", thirty_price)
+    if choice == "0":
+        return "你没有出售灵草。"
+    return "坊市牙人没听懂你的意思，交易作罢。"
+
+
+def action_market(player: Player) -> str:
+    print("坊市交易：")
+    print("A. 买入商品")
+    print("B. 出售灵草")
+    print("C. 打听行情，情报值+1")
+    print("D. 离开坊市")
+    choice = _read_choice("请选择：").upper()
+
+    if choice == "A":
+        return _buy_market_good(player)
+    if choice == "B":
+        return _sell_herbs_market(player)
+    if choice == "C":
+        player.intelligence += 1
+        player.clamp()
+        return "你在坊市茶棚打听行情，情报值+1。"
+    if choice == "D":
+        return "你离开坊市，没有交易。"
 
     player.intelligence += 1
     player.clamp()
-    return "你没有出手交易，只在坊市听了半日行情，情报值+1。"
+    return "你没选定交易，只在坊市听了半日行情，情报值+1。"
 
 
 def action_refine_pills(player: Player) -> str:

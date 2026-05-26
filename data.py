@@ -1,6 +1,6 @@
 """第一章《旁支入道》的静态数据。"""
 
-VERSION = "v0.1.1"
+VERSION = "v0.1.2"
 CHAPTER_NAME = "旁支入道"
 FAMILY_NAME = "青岭沈家"
 TOTAL_MONTHS = 12
@@ -149,6 +149,11 @@ ATTRIBUTE_NAMES = {
     "charm": "魅力",
     "dao_heart": "道心",
     "intelligence": "情报值",
+    "talisman_guard": "护身符",
+    "talisman_fire": "火弹符",
+    "talisman_avoid_fire": "避火符",
+    "talisman_break_armor": "破甲符",
+    "black_market_clue": "黑市线索",
     "herbs": "普通灵草",
     "aged_herbs_10": "十年份灵草",
     "aged_herbs_30": "三十年份灵草",
@@ -167,6 +172,81 @@ MARKET_PRICES = {
     "十年份灵草": 10,
     "三十年份灵草": 35,
 }
+
+MARKET_GOODS = [
+    {
+        "name": "普通灵草",
+        "price": 2,
+        "effects": {"herbs": 1},
+        "effect_text": "普通灵草+1",
+    },
+    {
+        "name": "十年份灵草",
+        "price": 10,
+        "effects": {"aged_herbs_10": 1},
+        "effect_text": "十年份灵草+1",
+    },
+    {
+        "name": "三十年份灵草",
+        "price": 35,
+        "effects": {"aged_herbs_30": 1},
+        "effect_text": "三十年份灵草+1",
+    },
+    {
+        "name": "聚气散",
+        "price": 12,
+        "effects": {"cultivation_progress": 15},
+        "effect_text": "修炼进度+15",
+    },
+    {
+        "name": "回春丹",
+        "price": 8,
+        "effects": {"hp": 20},
+        "effect_text": "气血恢复20",
+    },
+    {
+        "name": "清心丸",
+        "price": 15,
+        "effects": {"heart_demon": -5},
+        "effect_text": "心魔值-5",
+    },
+    {
+        "name": "护身符",
+        "price": 20,
+        "effects": {"talisman_guard": 1},
+        "effect_text": "护身符+1",
+    },
+    {
+        "name": "火弹符",
+        "price": 18,
+        "effects": {"talisman_fire": 1},
+        "effect_text": "火弹符+1",
+    },
+    {
+        "name": "避火符",
+        "price": 15,
+        "effects": {"talisman_avoid_fire": 1},
+        "effect_text": "避火符+1",
+    },
+    {
+        "name": "破甲符",
+        "price": 15,
+        "effects": {"talisman_break_armor": 1},
+        "effect_text": "破甲符+1",
+    },
+    {
+        "name": "坊市情报",
+        "price": 10,
+        "effects": {"intelligence": 3},
+        "effect_text": "情报值+3",
+    },
+    {
+        "name": "黑市线索",
+        "price": 20,
+        "effects": {"black_market_clue": 1, "exposure": 5},
+        "effect_text": "黑市线索+1，暴露度+5",
+    },
+]
 
 MONTHLY_EVENTS = [
     {

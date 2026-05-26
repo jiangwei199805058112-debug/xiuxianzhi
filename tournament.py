@@ -38,6 +38,15 @@ def _build_leaderboard(player_name: str, player_score: int) -> List[Dict[str, ob
     return entries
 
 
+def _talisman_combat_bonus(player: Player) -> int:
+    guard_bonus = min(player.talisman_guard, 2)
+    fire_bonus = min(player.talisman_fire, 2)
+    has_shen_yunting = any(name == "沈云庭" for name, _, _ in NPC_SCORE_RANGES)
+    avoid_fire_bonus = min(player.talisman_avoid_fire, 1) if has_shen_yunting else 0
+    break_armor_bonus = min(player.talisman_break_armor, 1)
+    return min(5, guard_bonus + fire_bonus + avoid_fire_bonus + break_armor_bonus)
+
+
 def run_tournament(player: Player) -> Dict[str, object]:
     mind_score = _cap(
         player.realm_level * 3
@@ -63,6 +72,7 @@ def run_tournament(player: Player) -> Dict[str, object]:
         - player.exposure // 6,
         35,
     )
+    talisman_bonus = _talisman_combat_bonus(player)
     combat_score = _cap(
         player.attack
         + player.defense
@@ -71,6 +81,7 @@ def run_tournament(player: Player) -> Dict[str, object]:
         + player.combat_exp * 2
         + player.intelligence
         + min(player.souls_refined, 4) * 2
+        + talisman_bonus
         - player.heart_demon // 8
         - player.demonic_qi // 5
         - player.karma // 8,
@@ -123,6 +134,7 @@ def run_tournament(player: Player) -> Dict[str, object]:
         "ending": ending,
         "summary": summary,
         "leaderboard": leaderboard,
+        "talisman_bonus": talisman_bonus,
     }
 
 
@@ -134,6 +146,7 @@ def format_tournament_result(result: Dict[str, object]) -> str:
         lines.append(f"测灵问心：{scores.get('测灵问心', 0)}/25")
         lines.append(f"百药山试炼：{scores.get('百药山试炼', 0)}/35")
         lines.append(f"斗法台：{scores.get('斗法台', 0)}/40")
+    lines.append(f"符箓斗法加成：+{result.get('talisman_bonus', 0)}")
     lines.append(f"总分：{result['total']}/100")
     lines.append(f"名次：第 {result['rank']} 名")
     lines.append(f"目标：{'达成，进入前十' if result['top_ten'] else '未达成，未入前十'}")
