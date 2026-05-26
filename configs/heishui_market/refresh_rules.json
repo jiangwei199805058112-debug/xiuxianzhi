@@ -1,0 +1,90 @@
+[
+  {
+    "rule_id": "refresh_baicao_basic",
+    "shop_id": "shop_baicao",
+    "cycle": "monthly",
+    "fixed_stock_count": 5,
+    "random_stock_count": 1,
+    "eligible_categories": "丹药,材料",
+    "min_player_stage": "炼气一层",
+    "weight_formula": "refresh_weight * shop.price_multiplier * event_modifier",
+    "notes": "基础丹药固定，稀有丹药随机。"
+  },
+  {
+    "rule_id": "refresh_baoguang_basic",
+    "shop_id": "shop_baoguang",
+    "cycle": "monthly",
+    "fixed_stock_count": 4,
+    "random_stock_count": 1,
+    "eligible_categories": "法器,工具",
+    "min_player_stage": "炼气一层",
+    "weight_formula": "refresh_weight - high_price_penalty",
+    "notes": "下品法器为主。"
+  },
+  {
+    "rule_id": "refresh_juling_basic",
+    "shop_id": "shop_juling",
+    "cycle": "monthly",
+    "fixed_stock_count": 4,
+    "random_stock_count": 1,
+    "eligible_categories": "符箓,阵盘",
+    "min_player_stage": "炼气一层",
+    "weight_formula": "refresh_weight * event_modifier",
+    "notes": "妖兽潮提高防御符和遁逃符权重。"
+  },
+  {
+    "rule_id": "refresh_tanwei_random",
+    "shop_id": "shop_tanwei",
+    "cycle": "weekly",
+    "fixed_stock_count": 0,
+    "random_stock_count": 4,
+    "eligible_categories": "盲盒,材料,秘籍",
+    "min_player_stage": "凡人",
+    "weight_formula": "refresh_weight + player.luck*2",
+    "notes": "机缘越高越容易刷到高价值盲盒。"
+  },
+  {
+    "rule_id": "refresh_tianji_info",
+    "shop_id": "shop_tianji",
+    "cycle": "monthly",
+    "fixed_stock_count": 6,
+    "random_stock_count": 3,
+    "eligible_categories": "情报服务",
+    "min_player_stage": "凡人",
+    "weight_formula": "refresh_weight + tianji_relation",
+    "notes": "好感越高隐秘消息越多。"
+  },
+  {
+    "rule_id": "refresh_heishi_special",
+    "shop_id": "shop_heishi",
+    "cycle": "special_monthly",
+    "fixed_stock_count": 0,
+    "random_stock_count": 5,
+    "eligible_categories": "魔道功法,禁忌丹药,黑市道具,特殊材料",
+    "min_player_stage": "炼气二层",
+    "weight_formula": "refresh_weight + karma*1.5 + demonic_qi*2",
+    "notes": "严打魔修时库存大降或关闭。"
+  },
+  {
+    "rule_id": "refresh_fengyue_events",
+    "shop_id": "shop_fengyue",
+    "cycle": "monthly",
+    "fixed_stock_count": 4,
+    "random_stock_count": 2,
+    "eligible_categories": "社交服务",
+    "min_player_stage": "凡人",
+    "weight_formula": "refresh_weight + charm*2 + relation_fengyue",
+    "notes": "魅力和好感提高高级社交事件。"
+  },
+  {
+    "rule_id": "refresh_zhenbao_auction",
+    "shop_id": "shop_zhenbao",
+    "cycle": "quarterly",
+    "fixed_stock_count": 0,
+    "random_stock_count": 8,
+    "eligible_categories": "拍卖品",
+    "min_player_stage": "炼气七层",
+    "weight_formula": "refresh_weight + reputation/10",
+    "notes": "高声望可提前查看拍卖清单。"
+  }
+]

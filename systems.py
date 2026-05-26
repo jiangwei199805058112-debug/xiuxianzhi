@@ -6,6 +6,7 @@ import random
 from typing import Callable, Dict, List
 
 from data import ACTION_NAMES, ATTRIBUTE_NAMES, MARKET_GOODS, MARKET_PRICES, MONTHLY_EVENTS, NPCS
+from heishui_market import market_action as heishui_market_action
 from player import Player
 
 
@@ -78,16 +79,18 @@ def _jade_bottle_text(player: Player) -> str:
 
 def action_cultivate(player: Player) -> str:
     before_realm = player.realm_level
-    gain = _roll(6, 10) + player.cultivation_speed + player.root_growth
+    gain = _roll(4, 7) + max(1, player.cultivation_speed // 2) + player.root_growth
     used_pill = False
     if player.pills > 0:
         player.pills -= 1
-        gain += _roll(4, 7)
+        gain += _roll(5, 8)
+        player.heart_demon += 1
         used_pill = True
     player.gain_cultivation_progress(gain)
-    player.dao_heart += 1
-    player.heart_demon += _roll(0, 2)
-    player.exposure += 1 if gain >= 16 else 0
+    if random.random() < 0.35:
+        player.dao_heart += 1
+    player.heart_demon += _roll(0, 1)
+    player.exposure += 1 if gain >= 13 else 0
     player.clamp()
     pill_text = "你服下一枚丹药，药力推着灵气贯通周天。" if used_pill else "你没有丹药辅佐，只靠吐纳打磨根基。"
     realm_text = f"境界突破至{player.realm_name()}。" if player.realm_level > before_realm else ""
@@ -121,12 +124,21 @@ def action_spirit_field(player: Player) -> str:
 def action_gather_herbs(player: Player) -> str:
     herb_gain = _roll(2, 5)
     stone_gain = _roll(0, 2)
+    intel_text = ""
+    if player.explore_intel_bonus > 0:
+        player.explore_intel_bonus -= 1
+        herb_gain += 2
+        stone_gain += 1
+        player.exposure = max(0, player.exposure - 1)
+        intel_text = "你按天机阁情报避开险路，多采了几处隐蔽药丛。"
     player.herbs += herb_gain
     player.spirit_stones += stone_gain
     player.physique += 1
     player.luck += 1 if random.random() < 0.15 else 0
+    player.exposure += 1
+    player.hp -= _roll(0, 3)
 
-    if random.random() < 0.25:
+    if random.random() < 0.35:
         player.exposure += 2
         trail_text = "回程时你被巡山族人问了几句，暴露度略升。"
     else:
@@ -139,7 +151,7 @@ def action_gather_herbs(player: Player) -> str:
         cave_text = "你在百药山深处发现隐秘山洞，探索后取得一面残破魂幡。"
 
     player.clamp()
-    return f"你入百药山采药，得到普通灵草{herb_gain}，灵石{stone_gain}。{trail_text}{cave_text}"
+    return f"你入百药山采药，得到普通灵草{herb_gain}，灵石{stone_gain}。{intel_text}{trail_text}{cave_text}"
 
 
 def action_family_work(player: Player) -> str:
@@ -244,7 +256,8 @@ def action_market(player: Player) -> str:
     print("A. 买入商品")
     print("B. 出售灵草")
     print("C. 打听行情，情报值+1")
-    print("D. 离开坊市")
+    print("D. 黑水坊市")
+    print("E. 离开坊市")
     choice = _read_choice("请选择：").upper()
 
     if choice == "A":
@@ -256,6 +269,8 @@ def action_market(player: Player) -> str:
         player.clamp()
         return "你在坊市茶棚打听行情，情报值+1。"
     if choice == "D":
+        return heishui_market_action(player)
+    if choice == "E":
         return "你离开坊市，没有交易。"
 
     player.intelligence += 1
@@ -264,25 +279,41 @@ def action_market(player: Player) -> str:
 
 
 def action_refine_pills(player: Player) -> str:
-    if player.herbs >= 3 and player.spirit_stones >= 1:
-        player.herbs -= 3
-        player.spirit_stones -= 1
+    if player.herbs >= 4 and player.spirit_stones >= 2:
+        player.herbs -= 4
+        player.spirit_stones -= 2
+        if random.random() < 0.15:
+            player.heart_demon += 2
+            player.exposure += 3
+            player.hp -= 5
+            player.clamp()
+            return "你关门偷偷炼丹，却因火候不稳炸了小炉。消耗普通灵草4株和灵石2枚，心魔值+2，暴露度+3，气血-5。"
         made = _roll(2, 4)
         player.pills += made
         player.comprehension += 1
+        player.heart_demon += 1
         player.exposure += 2
+        player.hp -= 2
         player.clamp()
-        return f"你关门偷偷炼丹，消耗普通灵草3株和灵石1枚，得到丹药{made}枚，暴露度+2。"
+        return f"你关门偷偷炼丹，消耗普通灵草4株和灵石2枚，得到丹药{made}枚。丹毒入体，心魔值+1，暴露度+2，气血-2。"
 
-    if player.aged_herbs_10 >= 1 and player.spirit_stones >= 2:
+    if player.aged_herbs_10 >= 1 and player.spirit_stones >= 3:
         player.aged_herbs_10 -= 1
-        player.spirit_stones -= 2
+        player.spirit_stones -= 3
+        if random.random() < 0.10:
+            player.heart_demon += 3
+            player.exposure += 4
+            player.hp -= 7
+            player.clamp()
+            return "你用十年份灵草偷偷炼丹，药力反冲，经脉灼痛。心魔值+3，暴露度+4，气血-7。"
         made = _roll(3, 5)
         player.pills += made
         player.comprehension += 1
+        player.heart_demon += 2
         player.exposure += 4
+        player.hp -= 3
         player.clamp()
-        return f"你用十年份灵草偷偷炼丹，得到丹药{made}枚，暴露度+4。"
+        return f"你用十年份灵草偷偷炼丹，得到丹药{made}枚。丹毒更烈，心魔值+2，暴露度+4，气血-3。"
 
     player.contribution += 1
     player.npc_affection["沈若兰"] += 1
@@ -316,25 +347,30 @@ def action_visit_npc(player: Player) -> str:
 
 
 def action_spell_training(player: Player) -> str:
-    attack_gain = _roll(1, 3)
-    mp_gain = _roll(2, 5)
-    combat_gain = _roll(1, 3)
+    attack_gain = _roll(1, 2)
+    mp_gain = _roll(1, 3)
+    combat_gain = _roll(1, 2)
     player.attack += attack_gain
     player.mp += mp_gain
     player.combat_exp += combat_gain
     player.divine_sense += 1
-    player.heart_demon += 1 if random.random() < 0.2 else 0
+    player.hp -= _roll(1, 3)
+    player.heart_demon += 1 if random.random() < 0.35 else 0
     player.clamp()
-    return f"你修炼基础法术，攻击+{attack_gain}，灵力+{mp_gain}，斗法经验+{combat_gain}。"
+    return f"你修炼基础法术，攻击+{attack_gain}，灵力+{mp_gain}，斗法经验+{combat_gain}，气血略损。"
 
 
 def action_investigate(player: Player) -> str:
-    gain = _roll(3, 6)
+    gain = _roll(2, 4)
     player.intelligence += gain
-    player.exposure += 1 if random.random() < 0.35 else 0
+    player.exposure += 1
+    if random.random() < 0.35:
+        player.exposure += 1
+    if random.random() < 0.25:
+        player.heart_demon += 1
     player.npc_affection["沈霜"] += 1
     player.clamp()
-    return f"你探查大比签表、试炼药点与对手习惯，情报值+{gain}。沈霜对你的细心略有改观。"
+    return f"你探查大比签表、试炼药点与对手习惯，情报值+{gain}，暴露度+1。沈霜对你的细心略有改观。"
 
 
 def action_soul_banner(player: Player) -> str:
@@ -351,11 +387,15 @@ def action_soul_banner(player: Player) -> str:
     player.combat_exp += combat_gain
     player.attack += attack_gain
     player.gain_cultivation_progress(progress_gain)
-    player.demonic_qi += _roll(5, 9)
-    player.karma += _roll(3, 6)
-    player.heart_demon += _roll(2, 5)
-    player.righteous_reputation -= 2
-    player.exposure += _roll(2, 4)
+    player.demonic_qi += _roll(10, 15)
+    player.karma += _roll(9, 14)
+    player.heart_demon += _roll(8, 12)
+    player.righteous_reputation -= 4
+    player.exposure += _roll(8, 12)
+    if player.souls_refined >= 3 or random.random() < 0.35:
+        player.exposure += _roll(6, 10)
+        player.karma += _roll(3, 6)
+        player.heart_demon += _roll(3, 6)
     player.clamp()
     return (
         "你以残破魂幡收拢游魂，只敢炼化最浅的一缕阴气。"
@@ -380,9 +420,9 @@ def action_romance(player: Player) -> str:
 
 
 def action_meditate(player: Player) -> str:
-    heart_drop = _roll(3, 6)
-    demonic_drop = _roll(1, 3)
-    exposure_drop = _roll(1, 3)
+    heart_drop = _roll(2, 4)
+    demonic_drop = _roll(0, 2)
+    exposure_drop = _roll(0, 2)
     player.heart_demon -= heart_drop
     player.demonic_qi -= demonic_drop
     player.exposure -= exposure_drop

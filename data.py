@@ -1,6 +1,7 @@
 """第一章《旁支入道》的静态数据。"""
 
-VERSION = "v0.1.3"
+VERSION = "v0.1.5"
+HEISHUI_MARKET_VERSION = "v1.0"
 CHAPTER_NAME = "旁支入道"
 FAMILY_NAME = "青岭沈家"
 TOTAL_MONTHS = 12
@@ -194,7 +195,7 @@ MARKET_GOODS = [
     },
     {
         "name": "聚气散",
-        "price": 12,
+        "price": 16,
         "effects": {"cultivation_progress": 15},
         "effect_text": "修炼进度+15",
     },
@@ -206,43 +207,43 @@ MARKET_GOODS = [
     },
     {
         "name": "清心丸",
-        "price": 15,
+        "price": 18,
         "effects": {"heart_demon": -5},
         "effect_text": "心魔值-5",
     },
     {
         "name": "护身符",
-        "price": 20,
+        "price": 30,
         "effects": {"talisman_guard": 1},
         "effect_text": "护身符+1",
     },
     {
         "name": "火弹符",
-        "price": 18,
+        "price": 28,
         "effects": {"talisman_fire": 1},
         "effect_text": "火弹符+1",
     },
     {
         "name": "避火符",
-        "price": 15,
+        "price": 24,
         "effects": {"talisman_avoid_fire": 1},
         "effect_text": "避火符+1",
     },
     {
         "name": "破甲符",
-        "price": 15,
+        "price": 24,
         "effects": {"talisman_break_armor": 1},
         "effect_text": "破甲符+1",
     },
     {
         "name": "坊市情报",
-        "price": 10,
+        "price": 14,
         "effects": {"intelligence": 3},
         "effect_text": "情报值+3",
     },
     {
         "name": "黑市线索",
-        "price": 20,
+        "price": 24,
         "effects": {"black_market_clue": 1, "exposure": 5},
         "effect_text": "黑市线索+1，暴露度+5",
     },

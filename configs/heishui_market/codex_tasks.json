@@ -1,0 +1,50 @@
+[
+  {
+    "task_id": "codex_001",
+    "title": "实现配置读取",
+    "prompt": "读取 items.json、shops.json、npcs.json、market_events.json、refresh_rules.json，并在游戏启动时注册到配置管理器。所有商品价格、效果、库存、刷新权重不得写死在代码中。",
+    "acceptance": "新增商品只改 JSON 即可在坊市中出现。"
+  },
+  {
+    "task_id": "codex_002",
+    "title": "实现店铺解锁",
+    "prompt": "根据玩家境界、声望、业力、魔气、NPC好感、是否持有黑市暗号，判断店铺和服务是否开放。",
+    "acceptance": "未满足条件时店铺不显示或显示为锁定状态，并给出提示。"
+  },
+  {
+    "task_id": "codex_003",
+    "title": "实现每月刷新",
+    "prompt": "按 refresh_rules.json 每月刷新每个店铺的库存。固定库存必出，随机库存按 refresh_weight 和玩家机缘/好感修正抽取。",
+    "acceptance": "同一月份库存稳定；进入下个月后刷新。"
+  },
+  {
+    "task_id": "codex_004",
+    "title": "实现动态价格",
+    "prompt": "根据 market_events.json 对受影响类别应用 price_modifier_pct 和 stock_modifier_pct；支持多个市场事件叠加。",
+    "acceptance": "妖兽潮时解毒丹、回灵丹、金钟符价格上涨。"
+  },
+  {
+    "task_id": "codex_005",
+    "title": "实现购买与风险",
+    "prompt": "购买高价值物品时增加暴露度；购买黑市物品时增加业力/魔气/盘查风险；离开坊市时根据暴露度判定是否被尾随。",
+    "acceptance": "购买初级储物袋后暴露度上升，离坊市可能触发尾随事件。"
+  },
+  {
+    "task_id": "codex_006",
+    "title": "实现天机阁情报服务",
+    "prompt": "情报服务购买后写入玩家情报日志；探索类情报可在下一次探索中提供概率修正；黑市引荐可解锁暗坊黑市。",
+    "acceptance": "购买百药山妖兽图后，下一次百药山探索遇险率下降。"
+  },
+  {
+    "task_id": "codex_007",
+    "title": "实现风月楼社交服务",
+    "prompt": "风月楼服务主要影响心境、心魔、人脉、传闻和NPC好感；所有内容以淡出和事件结果呈现。",
+    "acceptance": "听曲饮茶增加心境；包厢宴请对目标NPC交谈成功率增加。"
+  },
+  {
+    "task_id": "codex_008",
+    "title": "实现盲盒/赌宝",
+    "prompt": "地摊盲盒根据玩家机缘、神识、鉴定能力抽取结果；部分结果触发追踪标记、假货、隐藏支线。",
+    "acceptance": "沾血储物袋有概率开出收益，也有概率触发被追踪事件。"
+  }
+]

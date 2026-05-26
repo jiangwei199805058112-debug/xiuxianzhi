@@ -39,52 +39,59 @@ def _build_leaderboard(player_name: str, player_score: int) -> List[Dict[str, ob
 
 
 def _talisman_combat_bonus(player: Player) -> int:
-    guard_bonus = min(player.talisman_guard, 2)
-    fire_bonus = min(player.talisman_fire, 2)
+    guard_bonus = 1 if player.talisman_guard > 0 else 0
+    fire_bonus = 1 if player.talisman_fire > 0 else 0
     has_shen_yunting = any(name == "沈云庭" for name, _, _ in NPC_SCORE_RANGES)
     avoid_fire_bonus = min(player.talisman_avoid_fire, 1) if has_shen_yunting else 0
     break_armor_bonus = min(player.talisman_break_armor, 1)
-    return min(5, guard_bonus + fire_bonus + avoid_fire_bonus + break_armor_bonus)
+    return min(3, guard_bonus + fire_bonus + avoid_fire_bonus + break_armor_bonus)
 
 
 def run_tournament(player: Player) -> Dict[str, object]:
     mind_score = _cap(
-        player.realm_level * 3
-        + player.cultivation_progress // 10
-        + player.root_growth * 2
-        + player.dao_heart
+        player.realm_level * 2
+        + player.cultivation_progress // 15
+        + player.root_growth
+        + player.dao_heart // 2
         + player.divine_sense
-        + player.righteous_reputation // 5
-        - player.heart_demon // 5
-        - player.demonic_qi // 8
-        - player.karma // 8,
+        + min(player.pills, 5)
+        + player.righteous_reputation // 8
+        - player.heart_demon // 3
+        - player.demonic_qi // 4
+        - player.karma // 4
+        - max(0, player.exposure - 50) // 8,
         25,
     )
     trial_score = _cap(
         player.physique
-        + player.speed
-        + player.luck * 2
-        + player.intelligence * 2
-        + player.herbs // 2
-        + player.aged_herbs_10 * 2
-        + player.aged_herbs_30 * 4
-        + player.contribution // 3
-        - player.exposure // 6,
+        + player.speed // 2
+        + player.luck
+        + player.intelligence // 4
+        + min(player.herbs, 12) // 4
+        + player.aged_herbs_10
+        + player.aged_herbs_30 * 2
+        + player.contribution // 4
+        + min(player.spirit_stones // 10, 3)
+        - player.exposure // 4
+        - player.heart_demon // 8
+        - player.karma // 8,
         35,
     )
     talisman_bonus = _talisman_combat_bonus(player)
     combat_score = _cap(
-        player.attack
-        + player.defense
-        + player.speed
-        + player.mp // 4
-        + player.combat_exp * 2
-        + player.intelligence
-        + min(player.souls_refined, 4) * 2
+        player.attack // 3
+        + player.defense // 2
+        + player.speed // 2
+        + player.mp // 12
+        + player.combat_exp // 3
+        + player.intelligence // 6
+        + min(player.pills, 5)
+        + min(player.souls_refined, 4)
         + talisman_bonus
-        - player.heart_demon // 8
-        - player.demonic_qi // 5
-        - player.karma // 8,
+        - player.heart_demon // 5
+        - player.demonic_qi // 3
+        - player.karma // 3
+        - max(0, player.exposure - 35) // 6,
         40,
     )
 
@@ -101,7 +108,7 @@ def run_tournament(player: Player) -> Dict[str, object]:
     flags: List[str] = []
     if player.has_jade_bottle and player.exposure >= 75:
         flags.append("玉瓶生疑")
-    if player.has_soul_banner and (player.demonic_qi >= 60 or player.karma >= 60):
+    if player.has_soul_banner and (player.demonic_qi >= 45 or player.karma >= 35 or player.heart_demon >= 55):
         flags.append("魔影伏身")
     if player.heart_demon >= 75:
         flags.append("心魔暗结")

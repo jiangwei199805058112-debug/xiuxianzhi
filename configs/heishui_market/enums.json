@@ -1,0 +1,87 @@
+[
+  {
+    "enum_type": "category",
+    "value": "丹药",
+    "description": "可消耗道具，常带丹毒或冷却。"
+  },
+  {
+    "enum_type": "category",
+    "value": "心法",
+    "description": "长期修炼路线。"
+  },
+  {
+    "enum_type": "category",
+    "value": "法术",
+    "description": "战斗技能或控制技能。"
+  },
+  {
+    "enum_type": "category",
+    "value": "法器",
+    "description": "装备类战力提升。"
+  },
+  {
+    "enum_type": "category",
+    "value": "符箓",
+    "description": "一次性消耗品。"
+  },
+  {
+    "enum_type": "category",
+    "value": "阵盘",
+    "description": "洞府、药园、战斗阵法。"
+  },
+  {
+    "enum_type": "category",
+    "value": "情报服务",
+    "description": "购买后进入情报日志或触发解锁。"
+  },
+  {
+    "enum_type": "category",
+    "value": "社交服务",
+    "description": "心境、好感、传闻、人脉。"
+  },
+  {
+    "enum_type": "category",
+    "value": "盲盒",
+    "description": "随机结果，受机缘影响。"
+  },
+  {
+    "enum_type": "rarity",
+    "value": "普通",
+    "description": "稳定刷新，低价值。"
+  },
+  {
+    "enum_type": "rarity",
+    "value": "精良",
+    "description": "有一定门槛或稀缺。"
+  },
+  {
+    "enum_type": "rarity",
+    "value": "稀有",
+    "description": "低概率刷新，通常触发支线。"
+  },
+  {
+    "enum_type": "rarity",
+    "value": "史诗",
+    "description": "拍卖或中后期核心目标。"
+  },
+  {
+    "enum_type": "risk_tag",
+    "value": "丹毒",
+    "description": "降低后续服丹效率，影响突破。"
+  },
+  {
+    "enum_type": "risk_tag",
+    "value": "暴露",
+    "description": "提升被尾随、打劫、盘查概率。"
+  },
+  {
+    "enum_type": "risk_tag",
+    "value": "魔气",
+    "description": "推动魔道线，也降低正道好感。"
+  },
+  {
+    "enum_type": "risk_tag",
+    "value": "业力",
+    "description": "影响天劫、正道态度和隐藏结局。"
+  }
+]

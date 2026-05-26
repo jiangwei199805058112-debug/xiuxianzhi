@@ -1,0 +1,50 @@
+[
+  {
+    "unlock_id": "unlock_heishi_by_tianji",
+    "target_type": "shop",
+    "target_id": "shop_heishi",
+    "condition": "购买 svc_tianji_heishi 并持有本月暗号",
+    "effect": "黑市开放7天",
+    "failure": "暗号过期后需重新购买"
+  },
+  {
+    "unlock_id": "unlock_heishi_by_karma",
+    "target_type": "shop",
+    "target_id": "shop_heishi",
+    "condition": "业力≥10 或 魔气≥10",
+    "effect": "黑市中人主动接触",
+    "failure": "正道NPC好感下降"
+  },
+  {
+    "unlock_id": "unlock_tianji_inner",
+    "target_type": "service",
+    "target_id": "天机阁内室",
+    "condition": "天机阁好感≥70",
+    "effect": "解锁天机推演、高级秘境、核心机缘线索",
+    "failure": ""
+  },
+  {
+    "unlock_id": "unlock_fengyue_rescue",
+    "target_type": "event",
+    "target_id": "红袖救命",
+    "condition": "风月楼好感≥80",
+    "effect": "被追杀时提供藏身处一次",
+    "failure": "使用后好感-30"
+  },
+  {
+    "unlock_id": "unlock_zhenbao_vip",
+    "target_type": "shop",
+    "target_id": "shop_zhenbao",
+    "condition": "累计消费≥1000下品灵石 或 声望≥100",
+    "effect": "贵宾室开放",
+    "failure": ""
+  },
+  {
+    "unlock_id": "unlock_baibing_custom",
+    "target_type": "service",
+    "target_id": "百兵阁定制",
+    "condition": "炎大师好感≥50 或 炼气五层",
+    "effect": "开放定制法器与温养池",
+    "failure": ""
+  }
+]

@@ -9,7 +9,7 @@ import io
 import random
 from typing import Dict, Iterable, List, Tuple
 
-from data import TOTAL_ACTIONS
+from data import TOTAL_ACTIONS, VERSION
 from player import Player, create_player
 from systems import monthly_event, perform_action
 from tournament import run_tournament
@@ -82,7 +82,8 @@ class AutoInput:
 
     def choose_market_mode(self) -> str:
         if self.route_name == "古玉瓶炼丹流":
-            if self.player.aged_herbs_30 > 0 or self.player.aged_herbs_10 > 0:
+            aged_total = self.player.aged_herbs_30 + self.player.aged_herbs_10
+            if aged_total > 0 and (self.player.spirit_stones < 16 or aged_total > 6):
                 return "B"
             return "A" if self.choose_market_good() != "0" else "C"
         if self.route_name in {"坊市符箓流", "均衡流"}:
@@ -92,25 +93,25 @@ class AutoInput:
     def choose_market_good(self) -> str:
         stones = self.player.spirit_stones
         if self.route_name == "古玉瓶炼丹流":
-            if self.player.heart_demon >= 10 and stones >= 15:
+            if self.player.heart_demon >= 10 and stones >= 18:
                 return "6"
-            if stones >= 12:
+            if stones >= 16:
                 return "4"
-            if self.player.heart_demon >= 5 and stones >= 15:
+            if self.player.heart_demon >= 5 and stones >= 18:
                 return "6"
             return "0"
         if self.route_name == "坊市符箓流":
-            if self.player.talisman_guard < 2 and stones >= 20:
+            if self.player.talisman_guard < 1 and stones >= 30:
                 return "7"
-            if self.player.talisman_fire < 2 and stones >= 18:
+            if self.player.talisman_fire < 1 and stones >= 28:
                 return "8"
-            if stones >= 10:
+            if stones >= 14:
                 return "11"
             return "0"
         if self.route_name == "均衡流":
-            if self.player.intelligence < 12 and stones >= 10:
+            if self.player.intelligence < 10 and stones >= 14:
                 return "11"
-            if stones >= 12:
+            if stones >= 16:
                 return "4"
             return "0"
         return "0"
@@ -181,6 +182,14 @@ def run_single_game(route: Dict[str, object], index: int) -> Dict[str, object]:
         "has_soul_banner": player.has_soul_banner,
         "magic_flag": "魔影伏身" in result["flags"],
         "jade_flag": "玉瓶生疑" in result["flags"],
+        "high_risk": (
+            player.exposure >= 70
+            or player.heart_demon >= 60
+            or player.demonic_qi >= 45
+            or player.karma >= 35
+            or "魔影伏身" in result["flags"]
+            or "玉瓶生疑" in result["flags"]
+        ),
     }
 
 
@@ -218,6 +227,7 @@ def summarize_route(route: Dict[str, object], runs: int) -> Dict[str, float | st
         "soul_banner_rate": rate(records, "has_soul_banner"),
         "magic_flag_rate": rate(records, "magic_flag"),
         "jade_flag_rate": rate(records, "jade_flag"),
+        "high_risk_rate": rate(records, "high_risk"),
     }
 
 
@@ -250,10 +260,45 @@ def print_summary(summary: Dict[str, float | str | int]) -> None:
     print(f"残破魂幡获得率：{pct(float(summary['soul_banner_rate']))}")
     print(f"魔影伏身结局标记率：{pct(float(summary['magic_flag_rate']))}")
     print(f"玉瓶生疑结局标记率：{pct(float(summary['jade_flag_rate']))}")
+    print(f"高风险局率：{pct(float(summary['high_risk_rate']))}")
+    print(f"综合评价：{route_assessment(summary)}")
+
+
+def route_assessment(summary: Dict[str, float | str | int]) -> str:
+    name = str(summary["name"])
+    top_ten = float(summary["top_ten_rate"])
+    top_three = float(summary["top_three_rate"])
+    exposure = float(summary["avg_exposure"])
+    heart = float(summary["avg_heart"])
+    karma = float(summary["avg_karma"])
+    stones = float(summary["avg_stones"])
+    avg_rank = float(summary["avg_rank"])
+    high_risk = float(summary["high_risk_rate"])
+
+    if top_ten < 0.30:
+        return "偏弱，需要确认是否仍能作为可玩路线。"
+    if exposure > 70:
+        return "收益伴随高暴露，属于高压路线。"
+    if name == "魔道炼魂流":
+        if top_three > 0.50 and high_risk < 0.30:
+            return "冲榜能力强但坏结局和风险仍偏低。"
+        if high_risk >= 0.40 or heart >= 35 or karma >= 30:
+            return "高收益伴随明显魔道代价。"
+    if name == "坊市符箓流" and stones > 18 and avg_rank <= 5:
+        return "名次高且资源宽裕，坊市价格仍可能偏低。"
+    if name == "纯打坐流":
+        if top_three > 0.50:
+            return "基础修炼冲榜能力仍偏强。"
+        return "低风险且较稳定，适合作为新手保底。"
+    if top_ten > 0.90 or top_three > 0.50:
+        return "整体偏强，后续可继续提高赛事压力。"
+    return "表现处于可观察区间。"
 
 
 def evaluate(summaries: List[Dict[str, float | str | int]]) -> List[str]:
     notes: List[str] = []
+    if all(float(summary["top_ten_rate"]) > 0.90 for summary in summaries):
+        notes.append("所有路线前十率都高于90%，整体赛事难度偏低或成长速度偏快。")
     for summary in summaries:
         name = str(summary["name"])
         top_ten = float(summary["top_ten_rate"])
@@ -261,6 +306,9 @@ def evaluate(summaries: List[Dict[str, float | str | int]]) -> List[str]:
         exposure = float(summary["avg_exposure"])
         heart = float(summary["avg_heart"])
         karma = float(summary["avg_karma"])
+        stones = float(summary["avg_stones"])
+        avg_rank = float(summary["avg_rank"])
+        high_risk = float(summary["high_risk_rate"])
 
         if top_ten < 0.30:
             notes.append(f"{name}：前十率低于30%，该路线可能过弱。")
@@ -272,8 +320,14 @@ def evaluate(summaries: List[Dict[str, float | str | int]]) -> List[str]:
             notes.append(f"{name}：平均暴露度超过70，该路线暴露风险过高。")
         if name == "魔道炼魂流" and top_ten > 0.60 and heart < 25 and karma < 25:
             notes.append("魔道炼魂流：前十率较高但心魔/业力偏低，魔道代价不足。")
+        if name == "魔道炼魂流" and top_three > 0.50 and high_risk < 0.30:
+            notes.append("魔道炼魂流：前三率高但坏结局/风险不高，魔道代价不足。")
+        if name == "坊市符箓流" and stones > 18 and avg_rank <= 5:
+            notes.append("坊市符箓流：资源剩余过多且名次高，坊市价格偏低。")
         if name == "纯打坐流" and top_ten < 0.30:
             notes.append("纯打坐流：前十率过低，新手保底不足。")
+        if name == "纯打坐流" and top_three > 0.50:
+            notes.append("纯打坐流：前三率过高，基础修炼收益过强。")
         if name == "纯打坐流" and top_ten > 0.90 and top_three > 0.50:
             notes.append("纯打坐流：前十率和前三率都偏高，策略性不足。")
 
@@ -294,7 +348,7 @@ def main() -> None:
     runs = max(1, int(args.runs))
     random.seed(int(args.seed))
 
-    print("=== v0.1.3 自动模拟结果 ===")
+    print(f"=== {VERSION} 自动模拟结果 ===")
     print(f"随机种子：{args.seed}")
     print(f"每个流派模拟：{runs}局")
 

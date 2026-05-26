@@ -1,0 +1,79 @@
+[
+  {
+    "event_id": "market_yaoshouchao",
+    "name": "妖兽潮预警",
+    "trigger": "百药山深处兽潮异动",
+    "duration_months": 1,
+    "affected_categories": "解毒丹,回灵丹,金钟符,神行符",
+    "price_modifier_pct": 50,
+    "stock_modifier_pct": -20,
+    "risk_modifier": "探索遇险概率+20%",
+    "notes": "防御和保命物涨价。"
+  },
+  {
+    "event_id": "market_zongmen_dashou",
+    "name": "宗门大收",
+    "trigger": "灵溪宗大开山门招收弟子",
+    "duration_months": 2,
+    "affected_categories": "聚气丹,下品法器,基础功法",
+    "price_modifier_pct": 30,
+    "stock_modifier_pct": -30,
+    "risk_modifier": "坊市拥挤，暴露度事件+5%",
+    "notes": "新手资源涨价。"
+  },
+  {
+    "event_id": "market_danshi_yunji",
+    "name": "丹师云集",
+    "trigger": "百草谷长老讲学",
+    "duration_months": 1,
+    "affected_categories": "灵草,成品丹药",
+    "price_modifier_pct": 0,
+    "stock_modifier_pct": 20,
+    "risk_modifier": "炼丹任务增加",
+    "notes": "灵草涨价，成品丹药降价；拆分到规则表。"
+  },
+  {
+    "event_id": "market_jindi_yidong",
+    "name": "禁地异动",
+    "trigger": "某处遗迹被发现",
+    "duration_months": 1,
+    "affected_categories": "玄铁,魂晶,破阵符,秘境情报",
+    "price_modifier_pct": 60,
+    "stock_modifier_pct": -40,
+    "risk_modifier": "竞争者增多",
+    "notes": "推动秘境线。"
+  },
+  {
+    "event_id": "market_yanda_moxiu",
+    "name": "严打魔修",
+    "trigger": "正道宗门联合执法",
+    "duration_months": 1,
+    "affected_categories": "黑市禁物,魔道功法,魂道材料",
+    "price_modifier_pct": 100,
+    "stock_modifier_pct": -80,
+    "risk_modifier": "黑市关闭概率+50%，盘查概率+30%",
+    "notes": "黑市可能暂时不可进入。"
+  },
+  {
+    "event_id": "market_lingyu",
+    "name": "天降灵雨",
+    "trigger": "区域灵气异常充沛",
+    "duration_months": 1,
+    "affected_categories": "灵草,聚气丹",
+    "price_modifier_pct": -30,
+    "stock_modifier_pct": 50,
+    "risk_modifier": "采药竞争+10%",
+    "notes": "适合囤货。"
+  },
+  {
+    "event_id": "market_sanxiu_dazhan",
+    "name": "散修大战",
+    "trigger": "附近散修团伙冲突",
+    "duration_months": 1,
+    "affected_categories": "疗伤丹,符箓,法器",
+    "price_modifier_pct": 40,
+    "stock_modifier_pct": -25,
+    "risk_modifier": "离开坊市被尾随概率+10%",
+    "notes": "战斗资源上涨。"
+  }
+]
