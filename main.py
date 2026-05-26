@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 from typing import Optional
 
-from data import CHAPTER_NAME, FAMILY_NAME, MONTH_NAMES, TOTAL_ACTIONS
+from data import CHAPTER_NAME, FAMILY_NAME, MONTH_NAMES, TOTAL_ACTIONS, VERSION
 from player import Player, create_player
 from save_load import load_game, save_game
 from systems import action_menu_text, monthly_event, perform_action, risk_summary
@@ -14,7 +14,7 @@ from tournament import format_tournament_result, run_tournament
 
 def print_header() -> None:
     print("=" * 42)
-    print(f"{FAMILY_NAME}  第一章：《{CHAPTER_NAME}》")
+    print(f"{FAMILY_NAME}  第一章：《{CHAPTER_NAME}》  {VERSION}")
     print("=" * 42)
     print("你是青岭沈家旁支子弟。一年后，家族大比开场。")
     print("目标：在 12 个月、36 次行动后进入家族大比前十。")

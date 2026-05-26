@@ -6,7 +6,10 @@ from dataclasses import dataclass, field
 import random
 from typing import Any, Dict, List
 
-from data import ACTIONS_PER_MONTH, NPCS, SPIRIT_ROOTS, TOTAL_ACTIONS
+from data import ACTIONS_PER_MONTH, INITIAL_NPC_AFFECTION, NPCS, SPIRIT_ROOTS, TOTAL_ACTIONS
+
+
+MAX_REALM_LEVEL = 9
 
 
 def _weighted_random_root() -> Dict[str, Any]:
@@ -20,17 +23,41 @@ def _weighted_random_root() -> Dict[str, Any]:
     return SPIRIT_ROOTS[0]
 
 
+def _int_from(data: Dict[str, Any], key: str, default: int) -> int:
+    try:
+        return int(data.get(key, default))
+    except (TypeError, ValueError):
+        return default
+
+
 @dataclass
 class Player:
     name: str
     spirit_root: str
     spirit_root_desc: str
     root_growth: int
+    age: int = 16
+    realm_level: int = 1
+    cultivation_progress: int = 0
     cultivation: int = 5
     physique: int = 5
     comprehension: int = 5
     combat_exp: int = 3
+    hp: int = 40
+    max_hp: int = 40
+    mp: int = 25
+    attack: int = 8
+    defense: int = 6
+    speed: int = 6
+    cultivation_speed: int = 5
+    divine_sense: int = 3
+    luck: int = 1
+    charm: int = 1
+    dao_heart: int = 5
+    intelligence: int = 0
     herbs: int = 3
+    aged_herbs_10: int = 0
+    aged_herbs_30: int = 0
     spirit_stones: int = 5
     pills: int = 1
     contribution: int = 0
@@ -41,14 +68,16 @@ class Player:
     righteous_reputation: int = 0
     npc_affection: Dict[str, int] = field(default_factory=dict)
     love_lock_level: int = 1
-    soul_banner_awakened: bool = False
+    has_jade_bottle: bool = False
+    has_soul_banner: bool = False
     souls_refined: int = 0
+    aged_herbs_sold_this_month: int = 0
     total_actions: int = 0
     ending_flags: List[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if not self.npc_affection:
-            self.npc_affection = {name: 10 for name in NPCS}
+            self.npc_affection = dict(INITIAL_NPC_AFFECTION)
         self.clamp()
 
     @property
@@ -63,13 +92,47 @@ class Player:
     def finished(self) -> bool:
         return self.total_actions >= TOTAL_ACTIONS
 
+    def realm_name(self) -> str:
+        return f"炼气{self.realm_level}层"
+
+    def _increase_realm_once(self) -> None:
+        self.realm_level += 1
+        self.max_hp += 8
+        self.hp = self.max_hp
+        self.mp += 5
+        self.attack += 2
+        self.defense += 1
+        self.speed += 1
+        self.divine_sense += 1
+        self.cultivation += 5
+
+    def gain_cultivation_progress(self, amount: int) -> None:
+        self.cultivation_progress += max(0, amount)
+        self.cultivation += max(0, amount) // 3
+        self.clamp()
+
     def clamp(self) -> None:
         numeric_min_zero = [
+            "cultivation_progress",
             "cultivation",
             "physique",
             "comprehension",
             "combat_exp",
+            "hp",
+            "max_hp",
+            "mp",
+            "attack",
+            "defense",
+            "speed",
+            "cultivation_speed",
+            "divine_sense",
+            "luck",
+            "charm",
+            "dao_heart",
+            "intelligence",
             "herbs",
+            "aged_herbs_10",
+            "aged_herbs_30",
             "spirit_stones",
             "pills",
             "contribution",
@@ -78,12 +141,23 @@ class Player:
             "demonic_qi",
             "karma",
             "souls_refined",
+            "aged_herbs_sold_this_month",
             "total_actions",
         ]
         for attr in numeric_min_zero:
             if getattr(self, attr) < 0:
                 setattr(self, attr, 0)
 
+        self.age = max(1, self.age)
+        self.realm_level = max(1, min(self.realm_level, MAX_REALM_LEVEL))
+        while self.cultivation_progress >= 100 and self.realm_level < MAX_REALM_LEVEL:
+            self.cultivation_progress -= 100
+            self._increase_realm_once()
+        if self.realm_level >= MAX_REALM_LEVEL:
+            self.cultivation_progress = min(self.cultivation_progress, 99)
+
+        self.max_hp = max(1, self.max_hp)
+        self.hp = max(0, min(self.hp, self.max_hp))
         self.exposure = min(self.exposure, 100)
         self.heart_demon = min(self.heart_demon, 100)
         self.demonic_qi = min(self.demonic_qi, 100)
@@ -91,10 +165,15 @@ class Player:
         self.righteous_reputation = max(-100, min(self.righteous_reputation, 100))
         self.total_actions = max(0, min(self.total_actions, TOTAL_ACTIONS))
 
+        cleaned_affection: Dict[str, int] = {}
         for npc in NPCS:
-            self.npc_affection.setdefault(npc, 10)
-        for npc, value in list(self.npc_affection.items()):
-            self.npc_affection[npc] = max(0, min(int(value), 100))
+            value = self.npc_affection.get(npc, INITIAL_NPC_AFFECTION[npc])
+            try:
+                affection = int(value)
+            except (TypeError, ValueError):
+                affection = INITIAL_NPC_AFFECTION[npc]
+            cleaned_affection[npc] = max(-100, min(affection, 100))
+        self.npc_affection = cleaned_affection
 
     def advance_action(self) -> None:
         self.total_actions += 1
@@ -106,17 +185,22 @@ class Player:
         return sum(self.npc_affection.values()) / len(self.npc_affection)
 
     def status_text(self) -> str:
-        affection_text = "，".join(f"{name}{value}" for name, value in self.npc_affection.items())
+        affection_text = "，".join(f"{name}{value:+d}" for name, value in self.npc_affection.items())
+        jade_text = "已得" if self.has_jade_bottle else "未得"
+        banner_text = "已得" if self.has_soul_banner else "未得"
         return (
-            f"姓名：{self.name}\n"
+            f"姓名：{self.name}｜年龄：{self.age}\n"
             f"出身：青岭沈家旁支\n"
             f"灵根：{self.spirit_root}（{self.spirit_root_desc}）\n"
-            f"属性：修为{self.cultivation}｜体魄{self.physique}｜悟性{self.comprehension}｜斗法{self.combat_exp}\n"
-            f"资源：灵草{self.herbs}｜灵石{self.spirit_stones}｜丹药{self.pills}｜家族贡献{self.contribution}\n"
+            f"境界：{self.realm_name()}｜修炼进度{self.cultivation_progress}/100｜修为{self.cultivation}\n"
+            f"战力：气血{self.hp}/{self.max_hp}｜灵力{self.mp}｜攻击{self.attack}｜防御{self.defense}｜身法{self.speed}\n"
+            f"资质：体魄{self.physique}｜悟性{self.comprehension}｜斗法经验{self.combat_exp}｜修炼速度{self.cultivation_speed}\n"
+            f"心性：神识{self.divine_sense}｜气运{self.luck}｜魅力{self.charm}｜道心{self.dao_heart}｜情报值{self.intelligence}\n"
+            f"资源：普通灵草{self.herbs}｜十年份灵草{self.aged_herbs_10}｜三十年份灵草{self.aged_herbs_30}｜灵石{self.spirit_stones}｜丹药{self.pills}｜家族贡献{self.contribution}\n"
             f"隐患：暴露度{self.exposure}｜心魔值{self.heart_demon}｜魔气值{self.demonic_qi}｜业力值{self.karma}\n"
             f"名声：正道声望{self.righteous_reputation}\n"
-            f"NPC好感：{affection_text}\n"
-            f"隐藏：情意锁低阶｜万魂幡炼魂次数{self.souls_refined}"
+            f"族人好感：{affection_text}\n"
+            f"隐藏：古玉瓶{jade_text}｜残破魂幡{banner_text}｜情意锁低阶｜炼魂次数{self.souls_refined}"
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -126,11 +210,28 @@ class Player:
             "spirit_root": self.spirit_root,
             "spirit_root_desc": self.spirit_root_desc,
             "root_growth": self.root_growth,
+            "age": self.age,
+            "realm_level": self.realm_level,
+            "cultivation_progress": self.cultivation_progress,
             "cultivation": self.cultivation,
             "physique": self.physique,
             "comprehension": self.comprehension,
             "combat_exp": self.combat_exp,
+            "hp": self.hp,
+            "max_hp": self.max_hp,
+            "mp": self.mp,
+            "attack": self.attack,
+            "defense": self.defense,
+            "speed": self.speed,
+            "cultivation_speed": self.cultivation_speed,
+            "divine_sense": self.divine_sense,
+            "luck": self.luck,
+            "charm": self.charm,
+            "dao_heart": self.dao_heart,
+            "intelligence": self.intelligence,
             "herbs": self.herbs,
+            "aged_herbs_10": self.aged_herbs_10,
+            "aged_herbs_30": self.aged_herbs_30,
             "spirit_stones": self.spirit_stones,
             "pills": self.pills,
             "contribution": self.contribution,
@@ -141,37 +242,63 @@ class Player:
             "righteous_reputation": self.righteous_reputation,
             "npc_affection": self.npc_affection,
             "love_lock_level": self.love_lock_level,
-            "soul_banner_awakened": self.soul_banner_awakened,
+            "has_jade_bottle": self.has_jade_bottle,
+            "has_soul_banner": self.has_soul_banner,
             "souls_refined": self.souls_refined,
+            "aged_herbs_sold_this_month": self.aged_herbs_sold_this_month,
             "total_actions": self.total_actions,
             "ending_flags": self.ending_flags,
         }
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Player":
+        old_cultivation = _int_from(data, "cultivation", 5)
+        inferred_realm = max(1, min(MAX_REALM_LEVEL, old_cultivation // 40 + 1))
+        realm_level = _int_from(data, "realm_level", inferred_realm)
+        max_hp = _int_from(data, "max_hp", 40 + max(0, realm_level - 1) * 8)
+        combat_exp = _int_from(data, "combat_exp", 3)
         player = cls(
             name=str(data.get("name", "沈无名")),
             spirit_root=str(data.get("spirit_root", "五行杂灵根")),
             spirit_root_desc=str(data.get("spirit_root_desc", "旧存档未记录灵根说明。")),
-            root_growth=int(data.get("root_growth", 0)),
-            cultivation=int(data.get("cultivation", 5)),
-            physique=int(data.get("physique", 5)),
-            comprehension=int(data.get("comprehension", 5)),
-            combat_exp=int(data.get("combat_exp", 3)),
-            herbs=int(data.get("herbs", 3)),
-            spirit_stones=int(data.get("spirit_stones", 5)),
-            pills=int(data.get("pills", 1)),
-            contribution=int(data.get("contribution", 0)),
-            exposure=int(data.get("exposure", 0)),
-            heart_demon=int(data.get("heart_demon", 0)),
-            demonic_qi=int(data.get("demonic_qi", 0)),
-            karma=int(data.get("karma", 0)),
-            righteous_reputation=int(data.get("righteous_reputation", 0)),
-            npc_affection=dict(data.get("npc_affection", {})),
-            love_lock_level=int(data.get("love_lock_level", 1)),
-            soul_banner_awakened=bool(data.get("soul_banner_awakened", False)),
-            souls_refined=int(data.get("souls_refined", 0)),
-            total_actions=int(data.get("total_actions", 0)),
+            root_growth=_int_from(data, "root_growth", 0),
+            age=_int_from(data, "age", 16),
+            realm_level=realm_level,
+            cultivation_progress=_int_from(data, "cultivation_progress", 0),
+            cultivation=old_cultivation,
+            physique=_int_from(data, "physique", 5),
+            comprehension=_int_from(data, "comprehension", 5),
+            combat_exp=combat_exp,
+            hp=_int_from(data, "hp", max_hp),
+            max_hp=max_hp,
+            mp=_int_from(data, "mp", 25 + max(0, realm_level - 1) * 5),
+            attack=_int_from(data, "attack", 8 + combat_exp // 2 + max(0, realm_level - 1) * 2),
+            defense=_int_from(data, "defense", 6 + max(0, realm_level - 1)),
+            speed=_int_from(data, "speed", 6 + max(0, realm_level - 1)),
+            cultivation_speed=_int_from(data, "cultivation_speed", 5 + _int_from(data, "root_growth", 0)),
+            divine_sense=_int_from(data, "divine_sense", 3 + max(0, realm_level - 1)),
+            luck=_int_from(data, "luck", 1),
+            charm=_int_from(data, "charm", 1),
+            dao_heart=_int_from(data, "dao_heart", 5),
+            intelligence=_int_from(data, "intelligence", 0),
+            herbs=_int_from(data, "herbs", 3),
+            aged_herbs_10=_int_from(data, "aged_herbs_10", 0),
+            aged_herbs_30=_int_from(data, "aged_herbs_30", 0),
+            spirit_stones=_int_from(data, "spirit_stones", 5),
+            pills=_int_from(data, "pills", 1),
+            contribution=_int_from(data, "contribution", 0),
+            exposure=_int_from(data, "exposure", 0),
+            heart_demon=_int_from(data, "heart_demon", 0),
+            demonic_qi=_int_from(data, "demonic_qi", 0),
+            karma=_int_from(data, "karma", 0),
+            righteous_reputation=_int_from(data, "righteous_reputation", 0),
+            npc_affection=dict(data.get("npc_affection") or {}),
+            love_lock_level=_int_from(data, "love_lock_level", 1),
+            has_jade_bottle=bool(data.get("has_jade_bottle", False)),
+            has_soul_banner=bool(data.get("has_soul_banner", data.get("soul_banner_awakened", False))),
+            souls_refined=_int_from(data, "souls_refined", 0),
+            aged_herbs_sold_this_month=_int_from(data, "aged_herbs_sold_this_month", 0),
+            total_actions=_int_from(data, "total_actions", 0),
             ending_flags=list(data.get("ending_flags", [])),
         )
         player.clamp()
@@ -189,5 +316,6 @@ def create_player(name: str) -> Player:
     )
     for attr, value in root["modifiers"].items():
         setattr(player, attr, getattr(player, attr) + int(value))
+    player.hp = player.max_hp
     player.clamp()
     return player

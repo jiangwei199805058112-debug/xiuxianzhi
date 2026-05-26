@@ -1,5 +1,6 @@
 """第一章《旁支入道》的静态数据。"""
 
+VERSION = "v0.1.1"
 CHAPTER_NAME = "旁支入道"
 FAMILY_NAME = "青岭沈家"
 TOTAL_MONTHS = 12
@@ -11,44 +12,91 @@ SPIRIT_ROOTS = [
         "name": "五行杂灵根",
         "weight": 34,
         "desc": "五行皆沾，进境缓慢，却胜在根基宽厚。",
-        "modifiers": {"cultivation": 0, "physique": 1, "comprehension": 1, "combat_exp": 0},
+        "modifiers": {
+            "cultivation": 0,
+            "physique": 1,
+            "comprehension": 1,
+            "combat_exp": 0,
+            "cultivation_speed": 0,
+            "dao_heart": 1,
+        },
         "growth": 0,
     },
     {
         "name": "四灵根",
         "weight": 28,
         "desc": "旁支常见资质，只要肯熬，也能在族中站稳脚跟。",
-        "modifiers": {"cultivation": 1, "physique": 1, "comprehension": 1, "combat_exp": 0},
+        "modifiers": {
+            "cultivation": 1,
+            "physique": 1,
+            "comprehension": 1,
+            "combat_exp": 0,
+            "cultivation_speed": 1,
+        },
         "growth": 1,
     },
     {
         "name": "三灵根",
         "weight": 22,
         "desc": "修炼较顺，若有资源扶持，足以争一争大比名次。",
-        "modifiers": {"cultivation": 2, "physique": 0, "comprehension": 1, "combat_exp": 1},
+        "modifiers": {
+            "cultivation": 2,
+            "physique": 0,
+            "comprehension": 1,
+            "combat_exp": 1,
+            "cultivation_speed": 2,
+            "divine_sense": 1,
+        },
         "growth": 2,
     },
     {
         "name": "双灵根",
         "weight": 12,
         "desc": "资质不俗，即便出身旁支，也会被族老多看一眼。",
-        "modifiers": {"cultivation": 3, "physique": 0, "comprehension": 2, "combat_exp": 1},
+        "modifiers": {
+            "cultivation": 3,
+            "physique": 0,
+            "comprehension": 2,
+            "combat_exp": 1,
+            "cultivation_speed": 3,
+            "divine_sense": 2,
+            "charm": 1,
+        },
         "growth": 3,
     },
     {
         "name": "异灵根",
         "weight": 4,
         "desc": "灵机偏锋，悟性出众，但也容易惹来审视。",
-        "modifiers": {"cultivation": 2, "physique": 0, "comprehension": 3, "combat_exp": 2},
+        "modifiers": {
+            "cultivation": 2,
+            "physique": 0,
+            "comprehension": 3,
+            "combat_exp": 2,
+            "cultivation_speed": 3,
+            "divine_sense": 3,
+            "luck": 1,
+        },
         "growth": 3,
     },
 ]
 
 NPCS = {
-    "沈清婉": "旁支少女，常在藏书阁帮忙抄录旧册。",
-    "沈怀远": "演武场管事，沉默寡言，重视勤勉。",
-    "沈素秋": "灵田执事，做事细密，厌恶投机。",
-    "沈砚": "同辈旁支子弟，心气颇高，常与人比较。",
+    "沈若兰": "药田一脉的旁支少女，心细，重视踏实做事。",
+    "沈云庭": "青岭沈家直系天才，眼高于顶，是大比前十热门。",
+    "沈子岳": "爽朗的同辈子弟，常在演武场与人切磋。",
+    "沈怀安": "族中杂务管事，记性很好，也记仇。",
+    "沈霜": "冷淡少言的族中少女，常替族老整理情报。",
+    "沈墨阳": "阴沉的直系子弟，对旁支向来轻慢。",
+}
+
+INITIAL_NPC_AFFECTION = {
+    "沈若兰": 0,
+    "沈云庭": -10,
+    "沈子岳": 0,
+    "沈怀安": -5,
+    "沈霜": 0,
+    "沈墨阳": -20,
 }
 
 MONTH_NAMES = [
@@ -67,25 +115,43 @@ MONTH_NAMES = [
 ]
 
 ACTION_NAMES = {
-    "1": "闭关修炼",
-    "2": "演武练法",
-    "3": "上山采药",
-    "4": "照看灵田",
-    "5": "古玉瓶催熟",
-    "6": "炼制丹药",
-    "7": "家族杂务",
-    "8": "拜访族人",
-    "9": "情意锁牵引",
-    "10": "夜祭残幡",
-    "11": "调息守心",
+    "1": "打坐修炼",
+    "2": "照看药田",
+    "3": "百药山采药",
+    "4": "家族杂务",
+    "5": "坊市交易",
+    "6": "偷偷炼丹",
+    "7": "结交族人",
+    "8": "修炼法术",
+    "9": "探查情报",
+    "10": "暗中炼魂",
+    "11": "情缘互动",
+    "12": "调息守心",
 }
 
 ATTRIBUTE_NAMES = {
+    "age": "年龄",
+    "realm_level": "境界层数",
+    "cultivation_progress": "修炼进度",
     "cultivation": "修为",
     "physique": "体魄",
     "comprehension": "悟性",
-    "combat_exp": "斗法",
-    "herbs": "灵草",
+    "combat_exp": "斗法经验",
+    "hp": "气血",
+    "max_hp": "气血上限",
+    "mp": "灵力",
+    "attack": "攻击",
+    "defense": "防御",
+    "speed": "身法",
+    "cultivation_speed": "修炼速度",
+    "divine_sense": "神识",
+    "luck": "气运",
+    "charm": "魅力",
+    "dao_heart": "道心",
+    "intelligence": "情报值",
+    "herbs": "普通灵草",
+    "aged_herbs_10": "十年份灵草",
+    "aged_herbs_30": "三十年份灵草",
     "spirit_stones": "灵石",
     "pills": "丹药",
     "contribution": "家族贡献",
@@ -94,6 +160,12 @@ ATTRIBUTE_NAMES = {
     "demonic_qi": "魔气值",
     "karma": "业力值",
     "righteous_reputation": "正道声望",
+}
+
+MARKET_PRICES = {
+    "普通灵草": 2,
+    "十年份灵草": 10,
+    "三十年份灵草": 35,
 }
 
 MONTHLY_EVENTS = [
@@ -114,12 +186,17 @@ MONTHLY_EVENTS = [
     },
     {
         "title": "旧祠冷香",
-        "text": "夜里旧祠香火忽明忽暗，残幡在识海深处一动。",
+        "text": "夜里旧祠香火忽明忽暗，残破魂幡似在远处呼应。",
         "effects": {"demonic_qi": 1, "heart_demon": 1},
     },
     {
         "title": "族老讲法",
         "text": "一位族老在前堂讲解吐纳关窍，旁支也可旁听半日。",
-        "effects": {"cultivation": 1, "comprehension": 1},
+        "effects": {"cultivation_progress": 5, "divine_sense": 1},
+    },
+    {
+        "title": "大比风声",
+        "text": "你听到几位直系弟子私下议论今年试炼的药点。",
+        "effects": {"intelligence": 2},
     },
 ]
