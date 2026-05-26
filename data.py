@@ -1,6 +1,6 @@
 """第一章《旁支入道》的静态数据。"""
 
-VERSION = "v0.1.2"
+VERSION = "v0.1.3"
 CHAPTER_NAME = "旁支入道"
 FAMILY_NAME = "青岭沈家"
 TOTAL_MONTHS = 12
