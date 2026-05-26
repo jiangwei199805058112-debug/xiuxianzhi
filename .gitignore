@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+save*.json
+*.save.json
+.env
+.venv/
+venv/
