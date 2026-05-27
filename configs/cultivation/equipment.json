@@ -1,0 +1,87 @@
+[
+  {
+    "item_id": "iron_sword",
+    "name": "旧铁剑",
+    "slot": "weapon",
+    "price": 12,
+    "effects": {
+      "attack": 2
+    },
+    "desc": "打磨过的旧剑，胜在可靠。"
+  },
+  {
+    "item_id": "greenwood_sword",
+    "name": "青木短剑",
+    "slot": "weapon",
+    "price": 24,
+    "effects": {
+      "attack": 3,
+      "divine_sense": 1,
+      "exposure": 1
+    },
+    "desc": "灵纹清浅，斗法时更顺手，也稍显扎眼。"
+  },
+  {
+    "item_id": "patched_robe",
+    "name": "补纹法袍",
+    "slot": "robe",
+    "price": 10,
+    "effects": {
+      "defense": 2
+    },
+    "desc": "修补过的入门法袍，能挡些余波。"
+  },
+  {
+    "item_id": "quiet_robe",
+    "name": "静气法袍",
+    "slot": "robe",
+    "price": 18,
+    "effects": {
+      "defense": 1,
+      "dao_heart": 1
+    },
+    "desc": "布料带安神香气，利于稳住心绪。"
+  },
+  {
+    "item_id": "cloth_boots",
+    "name": "轻布靴",
+    "slot": "boots",
+    "price": 8,
+    "effects": {
+      "speed": 1
+    },
+    "desc": "山路行走更省力。"
+  },
+  {
+    "item_id": "wind_boots",
+    "name": "踏风靴",
+    "slot": "boots",
+    "price": 20,
+    "effects": {
+      "speed": 2,
+      "exposure": 1
+    },
+    "desc": "身法灵动，但在旁支子弟中有些显眼。"
+  },
+  {
+    "item_id": "calm_charm",
+    "name": "清心护符",
+    "slot": "charm",
+    "price": 14,
+    "effects": {
+      "dao_heart": 1,
+      "heart_demon": -1
+    },
+    "desc": "低阶护符，只能略微压住杂念。"
+  },
+  {
+    "item_id": "sense_charm",
+    "name": "凝神玉坠",
+    "slot": "charm",
+    "price": 16,
+    "effects": {
+      "divine_sense": 1
+    },
+    "desc": "帮助集中神识，不算稀罕。"
+  }
+]

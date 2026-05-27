@@ -1,0 +1,46 @@
+[
+  {
+    "furnace_id": "none",
+    "name": "无专用丹炉",
+    "level": 0,
+    "price": 0,
+    "success_bonus": 0,
+    "pill_bonus": 0,
+    "heart_demon_delta": 0,
+    "exposure_delta": 0,
+    "desc": "只用简陋火盆和旧炉架，成丹不稳。"
+  },
+  {
+    "furnace_id": "worn_furnace",
+    "name": "破旧丹炉",
+    "level": 1,
+    "price": 8,
+    "success_bonus": 10,
+    "pill_bonus": 0,
+    "heart_demon_delta": 0,
+    "exposure_delta": 0,
+    "desc": "便宜旧炉，小幅提高成丹稳定性。"
+  },
+  {
+    "furnace_id": "bronze_furnace",
+    "name": "青铜丹炉",
+    "level": 2,
+    "price": 24,
+    "success_bonus": 16,
+    "pill_bonus": 0,
+    "heart_demon_delta": -1,
+    "exposure_delta": 0,
+    "desc": "炉火较稳，能略微降低丹毒反噬。"
+  },
+  {
+    "furnace_id": "black_iron_furnace",
+    "name": "玄铁丹炉",
+    "level": 3,
+    "price": 45,
+    "success_bonus": 18,
+    "pill_bonus": 1,
+    "heart_demon_delta": -1,
+    "exposure_delta": 1,
+    "desc": "成丹数量更好，但搬动和维护更引人注意。"
+  }
+]

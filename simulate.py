@@ -9,6 +9,7 @@ import io
 import random
 from typing import Dict, Iterable, List, Tuple
 
+from cultivation_assets import equipment_by_id, equipment_count, equipment_score, furnace_level
 from data import MARKET_GOODS, NPCS, TOTAL_ACTIONS, VERSION
 from heishui_market import ensure_market_state, load_config, shop_unlock_reason
 from player import Player, create_player
@@ -25,7 +26,16 @@ ROUTES: List[Dict[str, object]] = [
     },
     {
         "name": "古玉瓶炼丹流",
-        "weights": [("2", 25), ("6", 20), ("5", 15), ("1", 25), ("9", 10), ("12", 5)],
+        "weights": [
+            ("2", 20),
+            ("6", 17),
+            ("13_field", 10),
+            ("13_furnace", 8),
+            ("5", 12),
+            ("1", 25),
+            ("9", 5),
+            ("12", 3),
+        ],
     },
     {
         "name": "坊市符箓流",
@@ -37,7 +47,18 @@ ROUTES: List[Dict[str, object]] = [
     },
     {
         "name": "均衡流",
-        "weights": [("1", 25), ("2", 15), ("3", 15), ("5", 15), ("8", 10), ("9", 10), ("7", 5), ("12", 5)],
+        "weights": [
+            ("1", 22),
+            ("2", 13),
+            ("3", 14),
+            ("5", 14),
+            ("8", 9),
+            ("9", 9),
+            ("7", 5),
+            ("12", 5),
+            ("13_field", 4),
+            ("13_equip", 5),
+        ],
     },
     {
         "name": "黑水投机流",
@@ -47,14 +68,16 @@ ROUTES: List[Dict[str, object]] = [
         "name": "随心游玩流",
         "weights": [
             ("1", 5),
-            ("3", 9),
-            ("4", 8),
+            ("3", 10),
+            ("4", 10),
             ("8", 3),
             ("6", 3),
             ("5_normal", 8),
-            ("5_heishui", 36),
+            ("5_heishui", 40),
             ("7", 8),
-            ("12", 20),
+            ("12", 9),
+            ("13_field", 3),
+            ("13_equip", 1),
         ],
     },
 ]
@@ -84,6 +107,14 @@ class AutoInput:
     def __call__(self, prompt: str = "") -> str:
         if "古玉瓶用量" in prompt:
             return self.choose_jade_bottle()
+        if "请选择准备事项" in prompt:
+            return self.choose_preparation_mode()
+        if "请选择炼丹炉" in prompt:
+            return self.choose_furnace()
+        if "请选择购买装备" in prompt:
+            return self.choose_equipment_purchase()
+        if "请选择装备编号" in prompt:
+            return self.choose_equipment_to_wear()
         if "请选择商品" in prompt:
             return self.choose_market_good()
         if "请选择出售项" in prompt:
@@ -97,6 +128,119 @@ class AutoInput:
         if "请选择" in prompt:
             return self.choose_market_mode()
         return ""
+
+    def choose_preparation_mode(self) -> str:
+        if self.action_token == "13_furnace":
+            return "G"
+        if self.action_token == "13_equip":
+            if self.player.equipment_inventory and random.random() < 0.55:
+                return "J"
+            if self.player.spirit_stones >= 8:
+                return "I"
+            return "H"
+        if self.action_token == "13_field":
+            if (
+                self.route_name == "古玉瓶炼丹流"
+                and furnace_level(self.player) < 1
+                and self.player.spirit_stones >= 8
+                and random.random() < 0.55
+            ):
+                return "G"
+            return self.choose_field_preparation_mode()
+        if self.route_name == "古玉瓶炼丹流":
+            return self.choose_field_preparation_mode()
+        if self.route_name == "均衡流" and random.random() < 0.45:
+            return self.choose_field_preparation_mode()
+        if self.route_name == "随心游玩流" and random.random() < 0.55:
+            return self.choose_field_preparation_mode()
+        return "H"
+
+    def choose_field_preparation_mode(self) -> str:
+        fields = self.player.spirit_fields
+        has_mature = any(
+            field.get("crop_id") and not field.get("withered") and int(field.get("months_left", 0)) <= 0
+            for field in fields
+        )
+        has_withered = any(field.get("withered") for field in fields)
+        has_empty = any(not field.get("crop_id") and not field.get("withered") for field in fields)
+        has_growing = any(
+            field.get("crop_id") and not field.get("withered") and int(field.get("months_left", 0)) > 0
+            for field in fields
+        )
+        has_seeds = any(
+            int(self.player.market_inventory.get(key, 0)) > 0
+            for key in ("seed_juqi", "seed_qingxin", "seed_huangya")
+        )
+
+        if has_mature or has_withered:
+            return "D"
+        if self.route_name == "古玉瓶炼丹流":
+            if (
+                len(fields) == 1
+                and self.player.month <= 7
+                and self.player.spirit_stones >= 18
+                and self.player.herbs >= 5
+                and random.random() < 0.22
+            ):
+                return "E"
+            if has_empty and has_seeds:
+                return "B"
+            if has_empty and not has_seeds and self.player.spirit_stones >= 4:
+                return "F"
+            if has_growing:
+                return "C"
+            return "A"
+
+        if has_empty and has_seeds:
+            return "B"
+        if has_growing and random.random() < 0.55:
+            return "C"
+        if has_empty and not has_seeds and self.player.spirit_stones >= 12 and random.random() < 0.45:
+            return "F"
+        return "A"
+
+    def choose_furnace(self) -> str:
+        level = furnace_level(self.player)
+        stones = self.player.spirit_stones
+        if self.route_name == "古玉瓶炼丹流":
+            if level < 1 and stones >= 8:
+                return "2"
+            if level < 2 and stones >= 28:
+                return "3"
+            if level < 3 and stones >= 54 and self.player.month <= 8 and random.random() < 0.25:
+                return "4"
+            return "1"
+        if stones >= 28 and level < 2 and random.random() < 0.35:
+            return "3"
+        if stones >= 8 and level < 1:
+            return "2"
+        return "1"
+
+    def choose_equipment_purchase(self) -> str:
+        items = list(equipment_by_id().values())
+        candidates: List[Tuple[str, int]] = []
+        for index, item in enumerate(items, start=1):
+            price = int(item.get("price", 0))
+            item_id = str(item.get("item_id"))
+            slot = str(item.get("slot"))
+            already_has = int(self.player.equipment_inventory.get(item_id, 0)) > 0
+            already_equipped = self.player.equipped_items.get(slot) == item_id
+            if self.player.spirit_stones < price or already_has or already_equipped:
+                continue
+            weight = 8
+            if self.route_name == "均衡流":
+                weight = 10 if price <= 16 else 3
+            if self.route_name == "随心游玩流":
+                weight = 8 if price <= 18 else 2
+            candidates.append((str(index), weight))
+        if not candidates:
+            return "0"
+        return weighted_choice(candidates)
+
+    def choose_equipment_to_wear(self) -> str:
+        if not self.player.equipment_inventory:
+            return "0"
+        return "1"
 
     def choose_jade_bottle(self) -> str:
         if self.player.exposure > 60:
@@ -276,7 +420,7 @@ class AutoInput:
             ("shop_baicao", 8),
             ("shop_juling", 8),
             ("shop_tianji", 28),
-            ("shop_tanwei", 45),
+            ("shop_tanwei", 50),
             ("shop_fengyue", 11),
         ]
         if self.is_tournament_near():
@@ -296,7 +440,7 @@ class AutoInput:
 
         heishi = next((shop for shop in config.shops if shop.get("shop_id") == "shop_heishi"), None)
         if heishi and shop_unlock_reason(self.player, heishi)[0] and not self.is_casual_high_risk():
-            shop_weights.append(("shop_heishi", 4))
+            shop_weights.append(("shop_heishi", 16))
 
         unlocked_ids = {
             str(shop.get("shop_id"))
@@ -317,9 +461,9 @@ class AutoInput:
             candidates = [(shop_id, weight) for shop_id, weight in shop_weights if shop_id in unlocked_ids]
         if not candidates:
             return ""
-        if not self.is_casual_high_risk() and self.player.spirit_stones >= 20:
+        if not self.is_casual_high_risk() and self.player.spirit_stones >= 18:
             tanwei_affordable = any(shop_id == "shop_tanwei" for shop_id, _ in candidates)
-            tanwei_chance = 0.90 if self.player.heishui_blindbox_purchase_count == 0 else 0.60
+            tanwei_chance = 0.95 if self.player.heishui_blindbox_purchase_count == 0 else 0.65
             if tanwei_affordable and random.random() < tanwei_chance:
                 return "shop_tanwei"
         return weighted_choice(candidates)
@@ -367,11 +511,11 @@ class AutoInput:
             "坊市行情消息": 26,
             "百药山灵草线索": 24,
             "大比对手情报": 18,
-            "黑市暗号线索": 26,
+            "黑市暗号线索": 50,
             "听曲静心": 16,
             "打听小道消息": 22,
-            "染尘旧储物袋": 50,
-            "赌石": 2,
+            "染尘旧储物袋": 80,
+            "赌石": 8,
             "辟谷丹": 4,
             "回春散": 8,
             "聚气丹": 8,
@@ -401,9 +545,9 @@ class AutoInput:
             name = str(item.get("name"))
             weight = name_weights.get(name, 0)
             if category == "盲盒" and name != "染尘旧储物袋":
-                weight = max(weight, 1)
+                weight = max(weight, 4)
             if self.target_shop_id == "shop_heishi":
-                weight = 1 if not self.is_casual_high_risk() else 0
+                weight = 8 if not self.is_casual_high_risk() else 0
             if weight > 0:
                 candidates.append((str(index), weight))
 
@@ -437,6 +581,10 @@ class AutoInput:
 
         stones = self.player.spirit_stones
         if self.route_name == "古玉瓶炼丹流":
+            if self.player.alchemy_furnace_id == "none" and stones >= 8:
+                return "0"
+            if furnace_level(self.player) < 2 and 20 <= stones < 30:
+                return "0"
             if self.player.heart_demon >= 10 and stones >= 22:
                 return "6"
             if stones >= 20:
@@ -526,6 +674,8 @@ def choose_route_action(route: Dict[str, object], player: Player) -> str:
 def action_choice_from_token(action_token: str) -> str:
     if action_token in {"5_normal", "5_heishui"}:
         return "5"
+    if action_token.startswith("13_"):
+        return "13"
     return action_token
 
 
@@ -602,6 +752,10 @@ def run_single_game(route: Dict[str, object], index: int) -> Dict[str, object]:
         "tracking_marks": player.tracking_marks,
         "heishui_risk_event_count": player.heishui_risk_event_count,
         "heishui_blindbox_net": player.heishui_blindbox_net,
+        "spirit_field_harvest_count": player.spirit_field_harvest_count,
+        "furnace_level": furnace_level(player),
+        "equipment_count": equipment_count(player),
+        "equipment_score": equipment_score(player),
     }
 
 
@@ -649,6 +803,10 @@ def summarize_route(route: Dict[str, object], runs: int) -> Dict[str, float | st
         "avg_tracking_marks": average(records, "tracking_marks"),
         "avg_heishui_risk_event_count": average(records, "heishui_risk_event_count"),
         "avg_heishui_blindbox_net": average(records, "heishui_blindbox_net"),
+        "avg_spirit_field_harvest_count": average(records, "spirit_field_harvest_count"),
+        "avg_furnace_level": average(records, "furnace_level"),
+        "avg_equipment_count": average(records, "equipment_count"),
+        "avg_equipment_score": average(records, "equipment_score"),
     }
 
 
@@ -691,6 +849,10 @@ def print_summary(summary: Dict[str, float | str | int]) -> None:
     print(f"追踪标记平均值：{summary['avg_tracking_marks']:.1f}")
     print(f"月末黑水风险事件触发次数：{summary['avg_heishui_risk_event_count']:.1f}")
     print(f"盲盒平均净收益：{summary['avg_heishui_blindbox_net']:.1f}")
+    print(f"平均灵田收获次数：{summary['avg_spirit_field_harvest_count']:.1f}")
+    print(f"平均炼丹炉等级：{summary['avg_furnace_level']:.1f}")
+    print(f"平均装备数量：{summary['avg_equipment_count']:.1f}")
+    print(f"平均装备评分：{summary['avg_equipment_score']:.1f}")
     print(f"综合评价：{route_assessment(summary)}")
 
 

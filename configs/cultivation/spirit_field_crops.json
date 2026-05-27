@@ -1,0 +1,44 @@
+[
+  {
+    "crop_id": "crop_juqi",
+    "name": "聚气草",
+    "seed_item": "seed_juqi",
+    "seed_name": "聚气草种子",
+    "growth_months": 2,
+    "wither_chance": 10,
+    "base_yields": {
+      "material_juqi_grass": [2, 3],
+      "herbs": [0, 1]
+    },
+    "aged_herb_10_chance": 4,
+    "desc": "最常用的炼丹辅材，生长期适中。"
+  },
+  {
+    "crop_id": "crop_qingxin",
+    "name": "清心草",
+    "seed_item": "seed_qingxin",
+    "seed_name": "清心草种子",
+    "growth_months": 3,
+    "wither_chance": 13,
+    "base_yields": {
+      "material_qingxin_grass": [2, 2],
+      "herbs": [0, 1]
+    },
+    "aged_herb_10_chance": 8,
+    "desc": "可缓和丹毒，成熟慢一些。"
+  },
+  {
+    "crop_id": "crop_huangya",
+    "name": "黄芽草",
+    "seed_item": "seed_huangya",
+    "seed_name": "黄芽草种子",
+    "growth_months": 1,
+    "wither_chance": 8,
+    "base_yields": {
+      "material_huangya_grass": [1, 2],
+      "herbs": [0, 1]
+    },
+    "aged_herb_10_chance": 2,
+    "desc": "基础药材，成熟快但单次收益低。"
+  }
+]

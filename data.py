@@ -1,6 +1,6 @@
 """第一章《旁支入道》的静态数据。"""
 
-VERSION = "v0.1.7"
+VERSION = "v0.1.8"
 HEISHUI_MARKET_VERSION = "v1.1"
 CHAPTER_NAME = "旁支入道"
 FAMILY_NAME = "青岭沈家"
@@ -128,6 +128,7 @@ ACTION_NAMES = {
     "10": "暗中炼魂",
     "11": "情缘互动",
     "12": "调息守心",
+    "13": "修炼准备",
 }
 
 ATTRIBUTE_NAMES = {

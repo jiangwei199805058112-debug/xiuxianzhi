@@ -6,6 +6,18 @@ from dataclasses import dataclass, field
 import random
 from typing import Any, Dict, List
 
+from cultivation_assets import (
+    EQUIPMENT_SLOTS,
+    EQUIPMENT_ATTR_NAMES,
+    current_furnace,
+    empty_field,
+    equipment_count,
+    equipment_effects,
+    equipment_score,
+    ensure_equipment,
+    ensure_spirit_fields,
+    grant_starter_seeds,
+)
 from data import ACTIONS_PER_MONTH, INITIAL_NPC_AFFECTION, NPCS, SPIRIT_ROOTS, TOTAL_ACTIONS
 
 
@@ -103,6 +115,11 @@ class Player:
     heishui_price_modifiers: Dict[str, int] = field(default_factory=dict)
     heishui_price_modifier_month: int = 0
     tracking_marks: int = 0
+    spirit_fields: List[Dict[str, Any]] = field(default_factory=lambda: [empty_field(1)])
+    spirit_field_harvest_count: int = 0
+    alchemy_furnace_id: str = "none"
+    equipment_inventory: Dict[str, int] = field(default_factory=dict)
+    equipped_items: Dict[str, str] = field(default_factory=lambda: {slot: "" for slot in EQUIPMENT_SLOTS})
     total_actions: int = 0
     ending_flags: List[str] = field(default_factory=list)
 
@@ -193,6 +210,7 @@ class Player:
             "explore_intel_bonus",
             "heishui_price_modifier_month",
             "tracking_marks",
+            "spirit_field_harvest_count",
             "total_actions",
         ]
         for attr in numeric_min_zero:
@@ -256,6 +274,9 @@ class Player:
         if self.heishui_price_modifier_month and self.heishui_price_modifier_month < self.month:
             self.heishui_price_modifiers = {}
 
+        ensure_spirit_fields(self)
+        ensure_equipment(self)
+
     def advance_action(self) -> None:
         self.total_actions += 1
         self.clamp()
@@ -269,6 +290,14 @@ class Player:
         affection_text = "，".join(f"{name}{value:+d}" for name, value in self.npc_affection.items())
         jade_text = "已得" if self.has_jade_bottle else "未得"
         banner_text = "已得" if self.has_soul_banner else "未得"
+        furnace = current_furnace(self)
+        equipment_effect_text = "、".join(
+            f"{EQUIPMENT_ATTR_NAMES[key]}{value:+d}"
+            for key, value in equipment_effects(self).items()
+            if value
+        )
+        if not equipment_effect_text:
+            equipment_effect_text = "无"
         return (
             f"姓名：{self.name}｜年龄：{self.age}\n"
             f"出身：青岭沈家旁支\n"
@@ -279,6 +308,8 @@ class Player:
             f"心性：神识{self.divine_sense}｜气运{self.luck}｜魅力{self.charm}｜道心{self.dao_heart}｜情报值{self.intelligence}\n"
             f"符箓：护身符{self.talisman_guard}｜火弹符{self.talisman_fire}｜避火符{self.talisman_avoid_fire}｜破甲符{self.talisman_break_armor}｜黑市线索{self.black_market_clue}\n"
             f"资源：普通灵草{self.herbs}｜十年份灵草{self.aged_herbs_10}｜三十年份灵草{self.aged_herbs_30}｜灵石{self.spirit_stones}｜丹药{self.pills}｜家族贡献{self.contribution}\n"
+            f"经营：灵田{len(self.spirit_fields)}块｜灵田收获{self.spirit_field_harvest_count}次｜丹炉{furnace.get('name', '无专用丹炉')}\n"
+            f"装备：持有{equipment_count(self)}件｜评分{equipment_score(self)}｜加成{equipment_effect_text}\n"
             f"隐患：暴露度{self.exposure}｜心魔值{self.heart_demon}｜魔气值{self.demonic_qi}｜业力值{self.karma}\n"
             f"名声：正道声望{self.righteous_reputation}\n"
             f"族人好感：{affection_text}\n"
@@ -359,6 +390,11 @@ class Player:
             "heishui_price_modifiers": self.heishui_price_modifiers,
             "heishui_price_modifier_month": self.heishui_price_modifier_month,
             "tracking_marks": self.tracking_marks,
+            "spirit_fields": self.spirit_fields,
+            "spirit_field_harvest_count": self.spirit_field_harvest_count,
+            "alchemy_furnace_id": self.alchemy_furnace_id,
+            "equipment_inventory": self.equipment_inventory,
+            "equipped_items": self.equipped_items,
             "total_actions": self.total_actions,
             "ending_flags": self.ending_flags,
         }
@@ -442,6 +478,11 @@ class Player:
             heishui_price_modifiers=dict(data.get("heishui_price_modifiers") or {}),
             heishui_price_modifier_month=_int_from(data, "heishui_price_modifier_month", 0),
             tracking_marks=_int_from(data, "tracking_marks", 0),
+            spirit_fields=list(data.get("spirit_fields") or [empty_field(1)]),
+            spirit_field_harvest_count=_int_from(data, "spirit_field_harvest_count", 0),
+            alchemy_furnace_id=str(data.get("alchemy_furnace_id", "none") or "none"),
+            equipment_inventory=dict(data.get("equipment_inventory") or {}),
+            equipped_items=dict(data.get("equipped_items") or {}),
             total_actions=_int_from(data, "total_actions", 0),
             ending_flags=list(data.get("ending_flags", [])),
         )
@@ -461,5 +502,6 @@ def create_player(name: str) -> Player:
     for attr, value in root["modifiers"].items():
         setattr(player, attr, getattr(player, attr) + int(value))
     player.hp = player.max_hp
+    grant_starter_seeds(player)
     player.clamp()
     return player
