@@ -14,12 +14,12 @@ NPC_SCORE_RANGES: List[Tuple[str, int, int]] = [
     ("沈子岳", 68, 76),
     ("沈怀安", 65, 73),
     ("沈霜", 62, 70),
-    ("普通直系A", 60, 68),
+    ("普通直系A", 61, 69),
     ("普通旁支A", 56, 64),
     ("法术偏科族人", 52, 62),
     ("药园弟子", 50, 60),
-    ("符箓小户", 48, 58),
-    ("低调黑马", 58, 75),
+    ("符箓小户", 49, 59),
+    ("低调黑马", 59, 76),
     ("弱势族人", 35, 50),
 ]
 
@@ -39,12 +39,13 @@ def _build_leaderboard(player_name: str, player_score: int) -> List[Dict[str, ob
 
 
 def _talisman_combat_bonus(player: Player) -> int:
-    guard_bonus = 1 if player.talisman_guard > 0 else 0
-    fire_bonus = 1 if player.talisman_fire > 0 else 0
+    guard_bonus = 1 if player.talisman_guard > 0 and player.defense < 14 else 0
+    fire_bonus = 1 if player.talisman_fire > 0 and player.attack < 16 else 0
     has_shen_yunting = any(name == "沈云庭" for name, _, _ in NPC_SCORE_RANGES)
-    avoid_fire_bonus = min(player.talisman_avoid_fire, 1) if has_shen_yunting else 0
-    break_armor_bonus = min(player.talisman_break_armor, 1)
-    return min(3, guard_bonus + fire_bonus + avoid_fire_bonus + break_armor_bonus)
+    avoid_fire_bonus = 1 if has_shen_yunting and player.talisman_avoid_fire > 0 else 0
+    break_armor_bonus = 1 if player.talisman_break_armor > 0 else 0
+    owned_effects = guard_bonus + fire_bonus + avoid_fire_bonus + break_armor_bonus
+    return min(2, (owned_effects + 1) // 2)
 
 
 def _intel_bonus(player: Player, section: str, cap_value: int = 2) -> int:
@@ -75,7 +76,7 @@ def run_tournament(player: Player) -> Dict[str, object]:
         player.physique
         + player.speed // 2
         + player.luck
-        + player.intelligence // 4
+        + player.intelligence // 5
         + min(player.herbs, 12) // 4
         + player.aged_herbs_10
         + player.aged_herbs_30 * 2
@@ -94,7 +95,7 @@ def run_tournament(player: Player) -> Dict[str, object]:
         + player.speed // 2
         + player.mp // 12
         + player.combat_exp // 3
-        + player.intelligence // 6
+        + player.intelligence // 8
         + min(player.pills, 5)
         + min(player.souls_refined, 4)
         + talisman_bonus

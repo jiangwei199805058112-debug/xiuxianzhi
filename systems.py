@@ -122,21 +122,28 @@ def action_spirit_field(player: Player) -> str:
 
 
 def action_gather_herbs(player: Player) -> str:
-    herb_gain = _roll(2, 5)
-    stone_gain = _roll(0, 2)
+    herb_gain = _roll(1, 5)
+    stone_gain = _roll(0, 1)
     intel_text = ""
     if player.explore_intel_bonus > 0:
         player.explore_intel_bonus -= 1
-        herb_gain += 2
-        stone_gain += 1
+        herb_gain += 1
+        stone_gain += 1 if random.random() < 0.70 else 0
         player.exposure = max(0, player.exposure - 1)
         intel_text = "你按天机阁情报避开险路，多采了几处隐蔽药丛。"
+    if random.random() < 0.12:
+        herb_gain = max(0, herb_gain - 1)
+        player.exposure += 1
+        player.hp -= _roll(1, 3)
+        setback_text = "山中药点被人采过，你绕了远路，收获不稳。"
+    else:
+        setback_text = ""
     player.herbs += herb_gain
     player.spirit_stones += stone_gain
-    player.physique += 1
-    player.luck += 1 if random.random() < 0.15 else 0
+    player.physique += 1 if random.random() < 0.85 else 0
+    player.luck += 1 if random.random() < 0.12 else 0
     player.exposure += 1
-    player.hp -= _roll(0, 3)
+    player.hp -= _roll(0, 4)
 
     if random.random() < 0.35:
         player.exposure += 2
@@ -151,7 +158,7 @@ def action_gather_herbs(player: Player) -> str:
         cave_text = "你在百药山深处发现隐秘山洞，探索后取得一面残破魂幡。"
 
     player.clamp()
-    return f"你入百药山采药，得到普通灵草{herb_gain}，灵石{stone_gain}。{intel_text}{trail_text}{cave_text}"
+    return f"你入百药山采药，得到普通灵草{herb_gain}，灵石{stone_gain}。{intel_text}{setback_text}{trail_text}{cave_text}"
 
 
 def action_family_work(player: Player) -> str:
@@ -265,17 +272,25 @@ def action_market(player: Player) -> str:
     if choice == "B":
         return _sell_herbs_market(player)
     if choice == "C":
-        player.intelligence += 1
+        if random.random() < 0.75:
+            player.intelligence += 1
+            result = "你在坊市茶棚打听行情，情报值+1。"
+        else:
+            result = "你在坊市茶棚听了半日传闻，却没筛出可用消息。"
         player.clamp()
-        return "你在坊市茶棚打听行情，情报值+1。"
+        return result
     if choice == "D":
         return heishui_market_action(player)
     if choice == "E":
         return "你离开坊市，没有交易。"
 
-    player.intelligence += 1
+    if random.random() < 0.65:
+        player.intelligence += 1
+        result = "你没选定交易，只在坊市听了半日行情，情报值+1。"
+    else:
+        result = "你没选定交易，只听到几句过时行情。"
     player.clamp()
-    return "你没选定交易，只在坊市听了半日行情，情报值+1。"
+    return result
 
 
 def action_refine_pills(player: Player) -> str:
@@ -347,21 +362,36 @@ def action_visit_npc(player: Player) -> str:
 
 
 def action_spell_training(player: Player) -> str:
-    attack_gain = _roll(1, 2)
-    mp_gain = _roll(1, 3)
-    combat_gain = _roll(1, 2)
+    fatigued = player.hp < player.max_hp * 55 // 100
+    if fatigued:
+        attack_gain = 1 if random.random() < 0.45 else 0
+        mp_gain = _roll(0, 1)
+        combat_gain = 1 if random.random() < 0.45 else 0
+    else:
+        attack_gain = _roll(1, 2)
+        mp_gain = _roll(1, 3)
+        combat_gain = _roll(1, 2)
     player.attack += attack_gain
     player.mp += mp_gain
     player.combat_exp += combat_gain
-    player.divine_sense += 1
-    player.hp -= _roll(1, 3)
-    player.heart_demon += 1 if random.random() < 0.35 else 0
+    if fatigued:
+        player.divine_sense += 1 if random.random() < 0.70 else 0
+    else:
+        player.divine_sense += 1
+    player.hp -= _roll(1, 4)
+    player.heart_demon += 1 if random.random() < (0.50 if fatigued else 0.35) else 0
     player.clamp()
-    return f"你修炼基础法术，攻击+{attack_gain}，灵力+{mp_gain}，斗法经验+{combat_gain}，气血略损。"
+    fatigue_text = "勉强练习，疲态已显。" if fatigued else ""
+    return f"你修炼基础法术，{fatigue_text}攻击+{attack_gain}，灵力+{mp_gain}，斗法经验+{combat_gain}，气血略损。"
 
 
 def action_investigate(player: Player) -> str:
-    gain = _roll(2, 4)
+    if random.random() < 0.10:
+        gain = 0
+        false_text = "线人给的消息互相矛盾，暂时没有可用情报。"
+    else:
+        gain = _roll(2, 3)
+        false_text = ""
     player.intelligence += gain
     player.exposure += 1
     if random.random() < 0.35:
@@ -370,7 +400,7 @@ def action_investigate(player: Player) -> str:
         player.heart_demon += 1
     player.npc_affection["沈霜"] += 1
     player.clamp()
-    return f"你探查大比签表、试炼药点与对手习惯，情报值+{gain}，暴露度+1。沈霜对你的细心略有改观。"
+    return f"你探查大比签表、试炼药点与对手习惯，情报值+{gain}，暴露度+1。{false_text}沈霜对你的细心略有改观。"
 
 
 def action_soul_banner(player: Player) -> str:

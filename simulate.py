@@ -437,25 +437,25 @@ class AutoInput:
 
         stones = self.player.spirit_stones
         if self.route_name == "古玉瓶炼丹流":
-            if self.player.heart_demon >= 10 and stones >= 18:
+            if self.player.heart_demon >= 10 and stones >= 22:
                 return "6"
-            if stones >= 16:
+            if stones >= 20:
                 return "4"
-            if self.player.heart_demon >= 5 and stones >= 18:
+            if self.player.heart_demon >= 5 and stones >= 22:
                 return "6"
             return "0"
         if self.route_name == "坊市符箓流":
-            if self.player.talisman_guard < 1 and stones >= 30:
+            if self.player.talisman_guard < 1 and stones >= 40:
                 return "7"
-            if self.player.talisman_fire < 1 and stones >= 28:
+            if self.player.talisman_fire < 1 and stones >= 36:
                 return "8"
-            if stones >= 14:
+            if stones >= 18:
                 return "11"
             return "0"
         if self.route_name == "均衡流":
-            if self.player.intelligence < 10 and stones >= 14:
+            if self.player.intelligence < 10 and stones >= 18:
                 return "11"
-            if stones >= 16:
+            if stones >= 20:
                 return "4"
             return "0"
         return "0"

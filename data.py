@@ -1,6 +1,6 @@
 """第一章《旁支入道》的静态数据。"""
 
-VERSION = "v0.1.6"
+VERSION = "v0.1.7"
 HEISHUI_MARKET_VERSION = "v1.1"
 CHAPTER_NAME = "旁支入道"
 FAMILY_NAME = "青岭沈家"
@@ -195,9 +195,9 @@ MARKET_GOODS = [
     },
     {
         "name": "聚气散",
-        "price": 16,
-        "effects": {"cultivation_progress": 15},
-        "effect_text": "修炼进度+15",
+        "price": 20,
+        "effects": {"cultivation_progress": 12},
+        "effect_text": "修炼进度+12",
     },
     {
         "name": "回春丹",
@@ -207,39 +207,39 @@ MARKET_GOODS = [
     },
     {
         "name": "清心丸",
-        "price": 18,
+        "price": 22,
         "effects": {"heart_demon": -5},
         "effect_text": "心魔值-5",
     },
     {
         "name": "护身符",
-        "price": 30,
+        "price": 40,
         "effects": {"talisman_guard": 1},
         "effect_text": "护身符+1",
     },
     {
         "name": "火弹符",
-        "price": 28,
+        "price": 36,
         "effects": {"talisman_fire": 1},
         "effect_text": "火弹符+1",
     },
     {
         "name": "避火符",
-        "price": 24,
+        "price": 32,
         "effects": {"talisman_avoid_fire": 1},
         "effect_text": "避火符+1",
     },
     {
         "name": "破甲符",
-        "price": 24,
+        "price": 32,
         "effects": {"talisman_break_armor": 1},
         "effect_text": "破甲符+1",
     },
     {
         "name": "坊市情报",
-        "price": 14,
-        "effects": {"intelligence": 3},
-        "effect_text": "情报值+3",
+        "price": 18,
+        "effects": {"intelligence": 2, "exposure": 1},
+        "effect_text": "情报值+2，暴露度+1",
     },
     {
         "name": "黑市线索",
