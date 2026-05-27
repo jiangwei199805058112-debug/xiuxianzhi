@@ -171,3 +171,5 @@ python simulate.py
 `docs/canon/09_chapter1_route_event_chains.md` 已补充灵田经营流与黑水投机流的 12 个月事件链。当前该文档包含盗术灰道流、炼丹丹房流、灵田经营流、黑水投机流，以及相关路线交叉事件。
 
 `docs/canon/09_chapter1_route_event_chains.md` 已补充正修打坐流与魔道边缘流的 12 个月事件链。当前该文档包含盗术灰道流、炼丹丹房流、灵田经营流、黑水投机流、正修打坐流、魔道边缘流，以及相关路线交叉事件。
+
+`docs/canon/09_chapter1_route_event_chains.md` 已补充情报人情流的 12 个月事件链。当前该文档包含盗术灰道流、炼丹丹房流、灵田经营流、黑水投机流、正修打坐流、魔道边缘流、情报人情流，以及相关路线交叉事件。
