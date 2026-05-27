@@ -9,6 +9,7 @@ import random
 import re
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
+from cultivation_assets import grant_equipment
 from player import Player
 
 CONFIG_DIR = Path(__file__).resolve().parent / "configs" / "heishui_market"
@@ -825,6 +826,12 @@ def _resolve_blindbox(player: Player, item: Dict[str, Any], price: int) -> List[
         player.market_flags.append("黑市线索")
     if outcome.get("outcome_id") == "demonic_item":
         player.market_flags.append("魔道盲盒物")
+    if random.random() < 0.015:
+        item_name = grant_equipment(player, random.choice(["calm_charm", "sense_charm", "iron_sword"]))
+        if item_name:
+            player.exposure += 1
+            player.market_flags.append("盲盒旧装备")
+            notes.append(f"夹层里还藏着一件来历不明的旧物：{item_name}，暴露度+1")
 
     result_text = str(outcome.get("result_text") or f"{item.get('name')}开出{outcome.get('name')}")
     notes.append(f"{result_text} 盲盒净收益{gain - price:+d}灵石")
@@ -1067,9 +1074,25 @@ def display_shop_list(player: Player) -> str:
     return "\n".join(lines)
 
 
+def _entry_warning_text(player: Player) -> str:
+    lines: List[str] = []
+    if "heishui_first_warning" not in player.market_flags:
+        player.market_flags.append("heishui_first_warning")
+        lines.append("黑水坊市提示：你隐约感觉此处鱼龙混杂，稍有不慎便会引火烧身。")
+    if player.exposure >= 55 or player.karma >= 25 or player.tracking_marks > 0:
+        lines.append("黑水坊市警告：你注意到有人在暗中打量你，再深入恐怕不妙。")
+    if not lines:
+        return ""
+    player.clamp()
+    return "\n".join(lines)
+
+
 def market_action(player: Player) -> str:
     config = load_config()
     ensure_market_state(player)
+    warning_text = _entry_warning_text(player)
+    if warning_text:
+        print(warning_text)
     print("黑水坊市：")
     print("1. 查看可用店铺")
     print("2. 进入店铺")

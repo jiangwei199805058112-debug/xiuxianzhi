@@ -20,6 +20,7 @@ from cultivation_assets import (
     field_status_text,
     furnace_shop_text,
     furnace_status_text,
+    grant_equipment,
     harvest_all_fields,
     material_total,
     one_click_plant,
@@ -35,9 +36,8 @@ def action_menu_text() -> str:
     lines = ["可选行动："]
     for key, name in ACTION_NAMES.items():
         lines.append(f"{key}. {name}")
-    lines.append("S. 存档")
     lines.append("L. 读档")
-    lines.append("Q. 退出")
+    lines.append("S/Q 仍可作为存档/退出快捷键。")
     return "\n".join(lines)
 
 
@@ -50,6 +50,28 @@ def _read_choice(prompt: str) -> str:
         return input(prompt).strip()
     except EOFError:
         return ""
+
+
+def tutorial_tip(player: Player) -> str:
+    flags = player.tutorial_flags
+    if player.month == 1 and "tutorial_month_1" not in flags:
+        flags.append("tutorial_month_1")
+        player.clamp()
+        return (
+            "【族中老人提醒】\n"
+            "单靠打坐最为稳妥，却难在家族大比中出头。\n"
+            "若想冲榜，丹药、符箓、情报、灵田、装备皆可助你一程。\n"
+            "只是捷径多伴风险，黑水坊市尤其如此。"
+        )
+    if player.month == 2 and "tutorial_month_2" not in flags:
+        flags.append("tutorial_month_2")
+        player.clamp()
+        return (
+            "【族中老人补充】\n"
+            "丹毒、心魔、暴露积得太高，到了大比问心和斗法台都会拖后腿。\n"
+            "魔道与黑水坊市能换来快收益，也更容易留下后患。"
+        )
+    return ""
 
 
 def _choose_npc(prompt: str) -> str:
@@ -178,8 +200,18 @@ def action_gather_herbs(player: Player) -> str:
         player.demonic_qi += 3
         cave_text = "你在百药山深处发现隐秘山洞，探索后取得一面残破魂幡。"
 
+    equipment_text = ""
+    if random.random() < 0.025:
+        item_id = random.choice(["calm_charm", "cloth_boots", "iron_sword"])
+        item_name = grant_equipment(player, item_id)
+        if item_name:
+            equipment_text = f"返程时你在乱石间捡到一件旧物：{item_name}。"
+
     player.clamp()
-    return f"你入百药山采药，得到普通灵草{herb_gain}，灵石{stone_gain}。{intel_text}{setback_text}{trail_text}{cave_text}"
+    return (
+        f"你入百药山采药，得到普通灵草{herb_gain}，灵石{stone_gain}。"
+        f"{intel_text}{setback_text}{trail_text}{cave_text}{equipment_text}"
+    )
 
 
 def action_family_work(player: Player) -> str:
@@ -190,8 +222,16 @@ def action_family_work(player: Player) -> str:
     player.righteous_reputation += 2
     player.heart_demon -= 1
     player.npc_affection["沈怀安"] += 2
+    equipment_text = ""
+    if random.random() < 0.025:
+        item_name = grant_equipment(player, "patched_robe")
+        if item_name:
+            equipment_text = f"一位族中长辈见你做事踏实，顺手赠你{item_name}。"
     player.clamp()
-    return f"你接下家族杂务，跑腿、抄册、守夜皆做，家族贡献+{contribution_gain}，灵石+{stone_gain}。"
+    return (
+        f"你接下家族杂务，跑腿、抄册、守夜皆做，家族贡献+{contribution_gain}，灵石+{stone_gain}。"
+        f"{equipment_text}"
+    )
 
 
 def _sell_aged_herb(player: Player, attr: str, label: str, price: int) -> str:
@@ -285,7 +325,8 @@ def action_market(player: Player) -> str:
     print("B. 出售灵草")
     print("C. 打听行情，情报值+1")
     print("D. 黑水坊市")
-    print("E. 离开坊市")
+    print("E. 挑选基础装备")
+    print("F. 离开坊市")
     choice = _read_choice("请选择：").upper()
 
     if choice == "A":
@@ -303,6 +344,10 @@ def action_market(player: Player) -> str:
     if choice == "D":
         return heishui_market_action(player)
     if choice == "E":
+        print(equipment_shop_text())
+        selected = _read_choice("请选择购买装备：")
+        return buy_equipment(player, int(selected)) if selected.isdigit() else "你没有购买装备。"
+    if choice == "F":
         return "你离开坊市，没有交易。"
 
     if random.random() < 0.65:
@@ -311,6 +356,45 @@ def action_market(player: Player) -> str:
     else:
         result = "你没选定交易，只听到几句过时行情。"
     player.clamp()
+    return result
+
+
+def _furnace_fire_text(furnace: Dict[str, object]) -> str:
+    furnace_id = str(furnace.get("furnace_id", "none"))
+    if furnace_id == "worn_furnace":
+        return "破旧丹炉炉壁微颤，火候时稳时散。"
+    if furnace_id == "bronze_furnace":
+        return "青铜丹炉聚火较稳，药液翻涌得有章法。"
+    if furnace_id == "black_iron_furnace":
+        return "玄铁丹炉火力沉厚，炉腹深处隐有低鸣。"
+    return "简陋火盆火舌忽明忽暗，你只能凭经验控火。"
+
+
+def _alchemy_success_text(
+    furnace: Dict[str, object],
+    made: int,
+    max_made: int,
+    heart_gain: int,
+    exposure_gain: int,
+) -> str:
+    if made >= max_made and heart_gain == 0:
+        result = "丹炉火候恰到好处，药香四溢，这一炉成色极佳。"
+    elif heart_gain > 0:
+        result = "炉中药力躁动，你强行压制，虽成丹却染上些许丹毒。"
+    else:
+        result = "丹炉火候略稳，这一炉丹药成色尚可。"
+    if str(furnace.get("furnace_id")) == "black_iron_furnace" and exposure_gain > 0:
+        result += "玄铁丹炉火力太盛，动静不小，似乎引来旁人注意。"
+    return result
+
+
+def _alchemy_failure_text(furnace: Dict[str, object], severe: bool) -> str:
+    if severe:
+        result = "丹火一乱，药材尽数化作焦灰，只余一缕苦味。"
+    else:
+        result = "丹火稍有不稳，部分药材化为焦灰，你及时压住炉火才没闹出更大动静。"
+    if str(furnace.get("furnace_id")) == "black_iron_furnace":
+        result += "玄铁丹炉余火沉闷，屋外似有人驻足片刻。"
     return result
 
 
@@ -326,59 +410,101 @@ def action_refine_pills(player: Player) -> str:
         player.herbs -= 4
         player.spirit_stones -= 2
         fail_chance = max(5, 15 - success_bonus // 2)
-        if random.randint(1, 100) <= fail_chance:
-            player.heart_demon += max(1, 2 + heart_delta)
-            player.exposure += max(0, 3 + exposure_delta)
+        fail_roll = random.randint(1, 100)
+        if fail_roll <= fail_chance:
+            heart_gain = max(1, 2 + heart_delta)
+            exposure_gain = max(0, 3 + exposure_delta)
+            player.heart_demon += heart_gain
+            player.exposure += exposure_gain
             player.hp -= 5
             player.clamp()
-            return f"{furnace_text}你关门偷偷炼丹，却因火候不稳炸了小炉。消耗普通灵草4株和灵石2枚，心魔值上升，暴露度上升，气血-5。"
+            severe = fail_roll <= max(1, fail_chance // 2)
+            return (
+                f"{furnace_text}{_furnace_fire_text(furnace)}"
+                f"{_alchemy_failure_text(furnace, severe)}消耗普通灵草4株和灵石2枚，"
+                f"心魔值+{heart_gain}，暴露度+{exposure_gain}，气血-5。"
+            )
         made = _roll(2, 4) + pill_bonus
+        heart_gain = max(0, 1 + heart_delta)
+        exposure_gain = max(0, 2 + exposure_delta)
         player.pills += made
         player.comprehension += 1
-        player.heart_demon += max(0, 1 + heart_delta)
-        player.exposure += max(0, 2 + exposure_delta)
+        player.heart_demon += heart_gain
+        player.exposure += exposure_gain
         player.hp -= 2
         player.clamp()
-        return f"{furnace_text}你关门偷偷炼丹，消耗普通灵草4株和灵石2枚，得到丹药{made}枚。丹毒入体，气血-2。"
+        return (
+            f"{furnace_text}{_furnace_fire_text(furnace)}"
+            f"{_alchemy_success_text(furnace, made, 4 + pill_bonus, heart_gain, exposure_gain)}"
+            f"消耗普通灵草4株和灵石2枚，得到丹药{made}枚，气血-2。"
+        )
 
     if player.aged_herbs_10 >= 1 and player.spirit_stones >= 3:
         player.aged_herbs_10 -= 1
         player.spirit_stones -= 3
         fail_chance = max(4, 10 - success_bonus // 3)
-        if random.randint(1, 100) <= fail_chance:
-            player.heart_demon += max(1, 3 + heart_delta)
-            player.exposure += max(0, 4 + exposure_delta)
+        fail_roll = random.randint(1, 100)
+        if fail_roll <= fail_chance:
+            heart_gain = max(1, 3 + heart_delta)
+            exposure_gain = max(0, 4 + exposure_delta)
+            player.heart_demon += heart_gain
+            player.exposure += exposure_gain
             player.hp -= 7
             player.clamp()
-            return f"{furnace_text}你用十年份灵草偷偷炼丹，药力反冲，经脉灼痛。心魔与暴露上升，气血-7。"
+            severe = fail_roll <= max(1, fail_chance // 2)
+            return (
+                f"{furnace_text}{_furnace_fire_text(furnace)}"
+                f"{_alchemy_failure_text(furnace, severe)}十年份灵草药力反冲，经脉灼痛，"
+                f"心魔值+{heart_gain}，暴露度+{exposure_gain}，气血-7。"
+            )
         made = _roll(3, 5) + pill_bonus
+        heart_gain = max(1, 2 + heart_delta)
+        exposure_gain = max(0, 4 + exposure_delta)
         player.pills += made
         player.comprehension += 1
-        player.heart_demon += max(1, 2 + heart_delta)
-        player.exposure += max(0, 4 + exposure_delta)
+        player.heart_demon += heart_gain
+        player.exposure += exposure_gain
         player.hp -= 3
         player.clamp()
-        return f"{furnace_text}你用十年份灵草偷偷炼丹，得到丹药{made}枚。丹毒更烈，气血-3。"
+        return (
+            f"{furnace_text}{_furnace_fire_text(furnace)}"
+            f"{_alchemy_success_text(furnace, made, 5 + pill_bonus, heart_gain, exposure_gain)}"
+            f"你用十年份灵草炼得丹药{made}枚，气血-3。"
+        )
 
     if material_total(player) >= 3 and player.spirit_stones >= 1:
         consumed = consume_alchemy_materials(player, 3)
         player.spirit_stones -= 1
         fail_chance = max(6, 18 - success_bonus // 2)
-        if random.randint(1, 100) <= fail_chance:
-            player.heart_demon += max(1, 2 + heart_delta)
-            player.exposure += max(0, 2 + exposure_delta)
+        fail_roll = random.randint(1, 100)
+        if fail_roll <= fail_chance:
+            heart_gain = max(1, 2 + heart_delta)
+            exposure_gain = max(0, 2 + exposure_delta)
+            player.heart_demon += heart_gain
+            player.exposure += exposure_gain
             player.hp -= 4
             player.clamp()
-            return f"{furnace_text}你用灵田药材试炼小炉，火候走偏。消耗炼丹材料3份和灵石1枚，心魔与暴露略升，气血-4。"
+            severe = fail_roll <= max(1, fail_chance // 2)
+            return (
+                f"{furnace_text}{_furnace_fire_text(furnace)}"
+                f"{_alchemy_failure_text(furnace, severe)}消耗炼丹材料3份和灵石1枚，"
+                f"心魔值+{heart_gain}，暴露度+{exposure_gain}，气血-4。"
+            )
         made = _roll(2, 3) + pill_bonus
+        heart_gain = max(0, 1 + heart_delta)
+        exposure_gain = max(0, 1 + exposure_delta)
         player.pills += made
         player.comprehension += 1 if random.random() < 0.70 else 0
-        player.heart_demon += max(0, 1 + heart_delta)
-        player.exposure += max(0, 1 + exposure_delta)
+        player.heart_demon += heart_gain
+        player.exposure += exposure_gain
         player.hp -= 1
         consumed_text = "、".join(f"{MATERIAL_NAMES.get(key, key)}x{value}" for key, value in consumed.items())
         player.clamp()
-        return f"{furnace_text}你用灵田药材炼成丹药{made}枚。消耗{consumed_text}和灵石1枚，气血-1。"
+        return (
+            f"{furnace_text}{_furnace_fire_text(furnace)}"
+            f"{_alchemy_success_text(furnace, made, 3 + pill_bonus, heart_gain, exposure_gain)}"
+            f"你用灵田药材炼成丹药{made}枚。消耗{consumed_text}和灵石1枚，气血-1。"
+        )
 
     player.contribution += 1
     player.npc_affection["沈若兰"] += 1
@@ -512,66 +638,111 @@ def action_meditate(player: Player) -> str:
     return f"你焚香静坐，压下杂念。心魔值-{heart_drop}，魔气值-{demonic_drop}，暴露度-{exposure_drop}，道心+1。"
 
 
-def action_preparation(player: Player) -> str:
-    print("修炼准备：")
-    print("A. 查看灵田")
-    print("B. 一键种植")
-    print("C. 一键照料")
-    print("D. 一键收获")
-    print("E. 升级灵田")
-    print("F. 购买基础种子包")
-    print("G. 购买/更换炼丹炉")
-    print("H. 查看装备")
-    print("I. 购买轻量装备")
-    print("J. 装备/替换装备")
-    print("0. 暂不准备")
-    choice = _read_choice("请选择准备事项：").upper()
+def action_status(player: Player) -> str:
+    return player.status_text()
 
-    if choice == "A":
+
+def preparation_status_text(player: Player) -> str:
+    return "\n\n".join(
+        [
+            field_status_text(player),
+            furnace_status_text(player),
+            equipment_status_text(player),
+        ]
+    )
+
+
+def _manage_spirit_field(player: Player) -> str:
+    print("管理灵田：")
+    print("1. 查看灵田")
+    print("2. 一键种植")
+    print("3. 一键照料")
+    print("4. 一键收获")
+    print("5. 升级灵田")
+    print("6. 购买基础种子包")
+    print("0. 返回")
+    choice = _read_choice("请选择灵田操作：")
+
+    if choice == "1":
         return field_status_text(player)
-    if choice == "B":
+    if choice == "2":
         return one_click_plant(player)
-    if choice == "C":
+    if choice == "3":
         return tend_all_fields(player)
-    if choice == "D":
+    if choice == "4":
         return harvest_all_fields(player)
-    if choice == "E":
+    if choice == "5":
         return upgrade_spirit_field(player)
-    if choice == "F":
+    if choice == "6":
         return buy_seed_pack(player)
-    if choice == "G":
-        print(furnace_status_text(player))
-        print(furnace_shop_text(player))
-        selected = _read_choice("请选择炼丹炉：")
-        return buy_furnace(player, int(selected)) if selected.isdigit() else "你没有更换炼丹炉。"
-    if choice == "H":
+    return "你暂时没有处理灵田。"
+
+
+def _manage_furnace(player: Player) -> str:
+    print(furnace_status_text(player))
+    print(furnace_shop_text(player))
+    selected = _read_choice("请选择炼丹炉：")
+    return buy_furnace(player, int(selected)) if selected.isdigit() else "你没有更换炼丹炉。"
+
+
+def _manage_equipment(player: Player) -> str:
+    print("查看/更换装备：")
+    print("1. 查看当前装备")
+    print("2. 购买轻量装备")
+    print("3. 装备/替换装备")
+    print("0. 返回")
+    choice = _read_choice("请选择装备操作：")
+
+    if choice == "1":
         return equipment_status_text(player)
-    if choice == "I":
+    if choice == "2":
         print(equipment_shop_text())
         selected = _read_choice("请选择购买装备：")
         return buy_equipment(player, int(selected)) if selected.isdigit() else "你没有购买装备。"
-    if choice == "J":
+    if choice == "3":
         print(equipment_inventory_text(player))
         selected = _read_choice("请选择装备编号：")
         return equip_item(player, int(selected)) if selected.isdigit() else "你没有更换装备。"
+    return "你没有更换装备。"
+
+
+def action_preparation(player: Player) -> str:
+    print("修炼准备：")
+    print("1. 管理灵田")
+    print("2. 查看/更换炼丹炉")
+    print("3. 查看/更换装备")
+    print("4. 查看当前准备状态")
+    print("0. 返回")
+    choice = _read_choice("请选择准备事项：")
+
+    if choice == "1":
+        return _manage_spirit_field(player)
+    if choice == "2":
+        return _manage_furnace(player)
+    if choice == "3":
+        return _manage_equipment(player)
+    if choice == "4":
+        return preparation_status_text(player)
     return "你暂时没有做额外准备。"
 
 
 ACTION_HANDLERS: Dict[str, Callable[[Player], str]] = {
     "1": action_cultivate,
-    "2": action_spirit_field,
-    "3": action_gather_herbs,
-    "4": action_family_work,
-    "5": action_market,
-    "6": action_refine_pills,
-    "7": action_visit_npc,
-    "8": action_spell_training,
-    "9": action_investigate,
-    "10": action_soul_banner,
-    "11": action_romance,
-    "12": action_meditate,
-    "13": action_preparation,
+    "2": action_gather_herbs,
+    "3": action_refine_pills,
+    "4": action_market,
+    "5": action_visit_npc,
+    "6": action_soul_banner,
+    "7": action_status,
+    "8": action_preparation,
+    "legacy_spirit_field": action_spirit_field,
+    "legacy_family_work": action_family_work,
+    "legacy_spell_training": action_spell_training,
+    "legacy_investigate": action_investigate,
+    "legacy_romance": action_romance,
+    "legacy_meditate": action_meditate,
 }
+NON_ADVANCING_ACTIONS = {"7"}
 
 
 def perform_action(player: Player, choice: str) -> str:
@@ -579,7 +750,8 @@ def perform_action(player: Player, choice: str) -> str:
     if handler is None:
         return "无效行动。"
     result = handler(player)
-    player.advance_action()
+    if choice not in NON_ADVANCING_ACTIONS:
+        player.advance_action()
     return result
 
 

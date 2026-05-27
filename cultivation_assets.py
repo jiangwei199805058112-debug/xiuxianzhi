@@ -255,6 +255,16 @@ def _add_market_inventory(player: Any, item_id: str, count: int) -> None:
     player.market_inventory[item_id] = int(player.market_inventory.get(item_id, 0)) + count
 
 
+def _random_planted_field(player: Any) -> Dict[str, Any] | None:
+    ensure_spirit_fields(player)
+    planted = [
+        field
+        for field in player.spirit_fields
+        if field.get("crop_id") and not field.get("withered") and int(field.get("months_left", 0)) > 0
+    ]
+    return random.choice(planted) if planted else None
+
+
 def _roll_range(value: Any) -> int:
     if isinstance(value, list) and len(value) == 2:
         try:
@@ -348,6 +358,51 @@ def upgrade_spirit_field(player: Any) -> str:
     return f"灵田升级完成，当前可种植{len(player.spirit_fields)}块。"
 
 
+def spirit_field_atmosphere_event(player: Any) -> str:
+    ensure_spirit_fields(player)
+    active_fields = [
+        field
+        for field in player.spirit_fields
+        if field.get("crop_id") or field.get("withered") or int(field.get("quality", 0)) > 0
+    ]
+    if not active_fields and int(getattr(player, "spirit_field_harvest_count", 0)) <= 0:
+        return ""
+
+    roll = random.randint(1, 100)
+    if roll <= 54:
+        return random.choice(
+            [
+                "灵田小记：灵田中灵气微动，几株幼苗叶尖凝露。",
+                "灵田小记：今日灵田长势平平，并无异动。",
+                "灵田小记：你沿田埂走了一圈，只听见细碎风声。",
+                "灵田小记：土中灵气散得很慢，暂时看不出好坏。",
+            ]
+        )
+    if roll <= 68:
+        return "灵田小记：昨夜似有虫痕，所幸发现得早，暂未伤到根系。"
+    if roll <= 78:
+        material = random.choice(("material_juqi_grass", "material_qingxin_grass", "material_huangya_grass"))
+        _add_market_inventory(player, material, 1)
+        player.clamp()
+        return f"灵田小记：你翻土时发现一截残根，勉强还能入药，{MATERIAL_NAMES[material]}+1。"
+    if roll <= 88:
+        field = _random_planted_field(player)
+        if field:
+            field["quality"] = min(3, int(field.get("quality", 0)) + 1)
+            player.clamp()
+            return "灵田小记：灵气在田垄间缓缓聚拢，一处作物长势略好。"
+        return "灵田小记：空田里有淡淡灵气游走，暂时还无作物承接。"
+    if roll <= 96:
+        exposure_gain = random.randint(1, 2)
+        player.exposure += exposure_gain
+        player.clamp()
+        return f"灵田小记：灵田异香外泄，你隐约觉得有人在远处窥探，暴露度+{exposure_gain}。"
+
+    player.exposure += 3
+    player.clamp()
+    return "灵田小记：夜里灵气忽然外溢，田边似有脚印，暴露度+3。"
+
+
 def advance_spirit_fields(player: Any) -> str:
     ensure_spirit_fields(player)
     crops = crops_by_id()
@@ -380,6 +435,9 @@ def advance_spirit_fields(player: Any) -> str:
             lines.append(f"灵田提示：{crop_name}已经成熟。")
         field["tended"] = 0
 
+    atmosphere = spirit_field_atmosphere_event(player)
+    if atmosphere:
+        lines.append(atmosphere)
     player.clamp()
     return "\n".join(lines)
 
@@ -565,6 +623,19 @@ def buy_equipment(player: Any, index: int) -> str:
     player.equipment_inventory[item_id] = int(player.equipment_inventory.get(item_id, 0)) + 1
     player.clamp()
     return f"你买下{item.get('name')}，花费灵石{price}。"
+
+
+def grant_equipment(player: Any, item_id: str, count: int = 1) -> str:
+    if count <= 0:
+        return ""
+    item = equipment_by_id().get(item_id)
+    if not item:
+        return ""
+    ensure_equipment(player)
+    player.equipment_inventory[item_id] = int(player.equipment_inventory.get(item_id, 0)) + count
+    player.clamp()
+    suffix = f"x{count}" if count > 1 else ""
+    return f"{item.get('name')}{suffix}"
 
 
 def inventory_equipment_choices(player: Any) -> List[Tuple[str, Dict[str, Any]]]:

@@ -22,62 +22,83 @@ DEFAULT_SEED = 20260527
 ROUTES: List[Dict[str, object]] = [
     {
         "name": "纯打坐流",
-        "weights": [("1", 70), ("8", 15), ("9", 10), ("12", 5)],
+        "weights": [("1", 70), ("legacy_spell_training", 15), ("legacy_investigate", 10), ("legacy_meditate", 5)],
     },
     {
         "name": "古玉瓶炼丹流",
         "weights": [
-            ("2", 20),
-            ("6", 17),
-            ("13_field", 10),
-            ("13_furnace", 8),
-            ("5", 12),
+            ("legacy_spirit_field", 20),
+            ("3", 17),
+            ("8_field", 10),
+            ("8_furnace", 8),
+            ("4", 12),
             ("1", 25),
-            ("9", 5),
-            ("12", 3),
+            ("legacy_investigate", 5),
+            ("legacy_meditate", 3),
         ],
     },
     {
         "name": "坊市符箓流",
-        "weights": [("3", 20), ("5", 30), ("1", 20), ("8", 15), ("9", 10), ("12", 5)],
+        "weights": [
+            ("2", 20),
+            ("4", 30),
+            ("1", 20),
+            ("legacy_spell_training", 15),
+            ("legacy_investigate", 10),
+            ("legacy_meditate", 5),
+        ],
     },
     {
         "name": "魔道炼魂流",
-        "weights": [("3", 25), ("10", 25), ("1", 20), ("8", 15), ("4", 10), ("12", 5)],
+        "weights": [
+            ("2", 25),
+            ("6", 25),
+            ("1", 20),
+            ("legacy_spell_training", 15),
+            ("legacy_family_work", 10),
+            ("legacy_meditate", 5),
+        ],
     },
     {
         "name": "均衡流",
         "weights": [
             ("1", 22),
-            ("2", 13),
-            ("3", 14),
-            ("5", 14),
-            ("8", 9),
-            ("9", 9),
-            ("7", 5),
-            ("12", 5),
-            ("13_field", 4),
-            ("13_equip", 5),
+            ("legacy_spirit_field", 13),
+            ("2", 14),
+            ("4", 14),
+            ("legacy_spell_training", 9),
+            ("legacy_investigate", 9),
+            ("5", 5),
+            ("legacy_meditate", 5),
+            ("8_field", 4),
+            ("8_equip", 5),
         ],
     },
     {
         "name": "黑水投机流",
-        "weights": [("5", 42), ("3", 24), ("4", 14), ("1", 10), ("9", 5), ("12", 5)],
+        "weights": [
+            ("4", 42),
+            ("2", 24),
+            ("legacy_family_work", 14),
+            ("1", 10),
+            ("legacy_investigate", 5),
+            ("legacy_meditate", 5),
+        ],
     },
     {
         "name": "随心游玩流",
         "weights": [
             ("1", 5),
-            ("3", 10),
-            ("4", 10),
-            ("8", 3),
-            ("6", 3),
-            ("5_normal", 8),
-            ("5_heishui", 40),
-            ("7", 8),
-            ("12", 9),
-            ("13_field", 3),
-            ("13_equip", 1),
+            ("2", 10),
+            ("legacy_family_work", 10),
+            ("legacy_spell_training", 3),
+            ("3", 3),
+            ("4_normal", 8),
+            ("4_heishui", 40),
+            ("5", 8),
+            ("legacy_meditate", 9),
+            ("8_field", 3),
+            ("8_equip", 1),
         ],
     },
 ]
@@ -109,6 +130,10 @@ class AutoInput:
             return self.choose_jade_bottle()
         if "请选择准备事项" in prompt:
             return self.choose_preparation_mode()
+        if "请选择灵田操作" in prompt:
+            return self.choose_field_preparation_mode()
+        if "请选择装备操作" in prompt:
+            return self.choose_equipment_mode()
         if "请选择炼丹炉" in prompt:
             return self.choose_furnace()
         if "请选择购买装备" in prompt:
@@ -130,30 +155,26 @@ class AutoInput:
         return ""
 
     def choose_preparation_mode(self) -> str:
-        if self.action_token == "13_furnace":
-            return "G"
-        if self.action_token == "13_equip":
-            if self.player.equipment_inventory and random.random() < 0.55:
-                return "J"
-            if self.player.spirit_stones >= 8:
-                return "I"
-            return "H"
-        if self.action_token == "13_field":
+        if self.action_token == "8_furnace":
+            return "2"
+        if self.action_token == "8_equip":
+            return "3"
+        if self.action_token == "8_field":
             if (
                 self.route_name == "古玉瓶炼丹流"
                 and furnace_level(self.player) < 1
                 and self.player.spirit_stones >= 8
                 and random.random() < 0.55
             ):
-                return "G"
-            return self.choose_field_preparation_mode()
+                return "2"
+            return "1"
         if self.route_name == "古玉瓶炼丹流":
-            return self.choose_field_preparation_mode()
+            return "1"
         if self.route_name == "均衡流" and random.random() < 0.45:
-            return self.choose_field_preparation_mode()
+            return "1"
         if self.route_name == "随心游玩流" and random.random() < 0.55:
-            return self.choose_field_preparation_mode()
-        return "H"
+            return "1"
+        return "4"
 
     def choose_field_preparation_mode(self) -> str:
         fields = self.player.spirit_fields
@@ -173,7 +194,7 @@ class AutoInput:
         )
 
         if has_mature or has_withered:
-            return "D"
+            return "4"
         if self.route_name == "古玉瓶炼丹流":
             if (
                 len(fields) == 1
@@ -182,22 +203,29 @@ class AutoInput:
                 and self.player.herbs >= 5
                 and random.random() < 0.22
             ):
-                return "E"
+                return "5"
             if has_empty and has_seeds:
-                return "B"
+                return "2"
             if has_empty and not has_seeds and self.player.spirit_stones >= 4:
-                return "F"
+                return "6"
             if has_growing:
-                return "C"
-            return "A"
+                return "3"
+            return "1"
 
         if has_empty and has_seeds:
-            return "B"
+            return "2"
         if has_growing and random.random() < 0.55:
-            return "C"
+            return "3"
         if has_empty and not has_seeds and self.player.spirit_stones >= 12 and random.random() < 0.45:
-            return "F"
-        return "A"
+            return "6"
+        return "1"
+
+    def choose_equipment_mode(self) -> str:
+        if self.player.equipment_inventory and random.random() < 0.55:
+            return "3"
+        if self.player.spirit_stones >= 8:
+            return "2"
+        return "1"
 
     def choose_furnace(self) -> str:
         level = furnace_level(self.player)
@@ -281,9 +309,9 @@ class AutoInput:
         return "C"
 
     def choose_casual_market_mode(self) -> str:
-        if self.action_token == "5_heishui":
+        if self.action_token == "4_heishui":
             if self.is_casual_high_risk() and random.random() < 0.60:
-                return "E"
+                return "F"
             if not self.entered_heishui:
                 self.entered_heishui = True
                 return "D"
@@ -301,7 +329,7 @@ class AutoInput:
             return "A"
         if random.random() < 0.55:
             return "C"
-        return "E"
+        return "F"
 
     def casual_buy_chance(self) -> float:
         chance = 0.45
@@ -659,23 +687,23 @@ def choose_route_action(route: Dict[str, object], player: Player) -> str:
             or player.heishui_risk_event_count > 0
         )
         if high_risk and random.random() < 0.35:
-            return "12"
+            return "legacy_meditate"
         if player.hp < player.max_hp * 0.35 and random.random() < 0.25:
-            return "12"
+            return "legacy_meditate"
 
     action = weighted_choice(route["weights"])  # type: ignore[arg-type]
-    if str(route["name"]) == "随心游玩流" and high_risk and action == "5_heishui" and random.random() < 0.65:
-        return "12" if random.random() < 0.60 else "5_normal"
-    if action == "10" and not player.has_soul_banner:
-        return "3" if random.random() < 0.65 else "1"
+    if str(route["name"]) == "随心游玩流" and high_risk and action == "4_heishui" and random.random() < 0.65:
+        return "legacy_meditate" if random.random() < 0.60 else "4_normal"
+    if action == "6" and not player.has_soul_banner:
+        return "2" if random.random() < 0.65 else "1"
     return action
 
 
 def action_choice_from_token(action_token: str) -> str:
-    if action_token in {"5_normal", "5_heishui"}:
-        return "5"
-    if action_token.startswith("13_"):
-        return "13"
+    if action_token in {"4_normal", "4_heishui"}:
+        return "4"
+    if action_token.startswith("8_"):
+        return "8"
     return action_token
 
 

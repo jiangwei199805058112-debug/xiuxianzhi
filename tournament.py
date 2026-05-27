@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 from typing import Dict, List, Tuple
 
-from cultivation_assets import equipment_bonus, equipment_score, furnace_level, material_total
+from cultivation_assets import equipment_bonus, equipment_score, furnace_level, grant_equipment, material_total
 from player import Player
 
 
@@ -160,6 +160,17 @@ def run_tournament(player: Player) -> Dict[str, object]:
         ending = "旁支落榜"
         summary = "你没能进入前十，只保住了旁支子弟的普通名册。"
 
+    reward_text = ""
+    if rank == 1:
+        reward_item = grant_equipment(player, "greenwood_sword")
+        reward_text = f"大比奖励：族中赐下{reward_item}。" if reward_item else ""
+    elif rank <= 3:
+        reward_item = grant_equipment(player, "sense_charm")
+        reward_text = f"大比奖励：族中赐下{reward_item}。" if reward_item else ""
+    elif top_ten:
+        reward_item = grant_equipment(player, "patched_robe")
+        reward_text = f"大比奖励：族中赐下{reward_item}。" if reward_item else ""
+
     player.ending_flags = flags
     player.clamp()
     return {
@@ -175,6 +186,7 @@ def run_tournament(player: Player) -> Dict[str, object]:
         "heishui_intel_bonus": mind_intel_bonus + trial_intel_bonus + combat_intel_bonus,
         "equipment_score": equipment_score(player),
         "alchemy_reserve_bonus": alchemy_reserve_bonus,
+        "reward_text": reward_text,
     }
 
 
@@ -212,4 +224,6 @@ def format_tournament_result(result: Dict[str, object]) -> str:
         lines.append("结算标记：无")
     lines.append(f"结局：{result['ending']}")
     lines.append(str(result["summary"]))
+    if result.get("reward_text"):
+        lines.append(str(result["reward_text"]))
     return "\n".join(lines)

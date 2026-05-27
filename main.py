@@ -8,7 +8,7 @@ from typing import Optional
 from data import CHAPTER_NAME, FAMILY_NAME, MONTH_NAMES, TOTAL_ACTIONS, VERSION
 from player import Player, create_player
 from save_load import load_game, save_game
-from systems import action_menu_text, monthly_event, perform_action, risk_summary
+from systems import action_menu_text, monthly_event, perform_action, risk_summary, tutorial_tip
 from tournament import format_tournament_result, run_tournament
 
 
@@ -58,6 +58,9 @@ def show_progress(player: Player) -> None:
     warnings = risk_summary(player)
     if warnings:
         print("风险提示：" + "；".join(warnings))
+    tip = tutorial_tip(player)
+    if tip:
+        print(tip)
     print()
 
 
@@ -67,7 +70,7 @@ def game_loop(player: Player) -> None:
         print(action_menu_text())
         choice = input("请选择：").strip().upper()
 
-        if choice == "S":
+        if choice in {"S", "9"}:
             try:
                 path = save_game(player)
             except OSError as error:
@@ -82,7 +85,7 @@ def game_loop(player: Player) -> None:
                 player = loaded
             continue
 
-        if choice == "Q":
+        if choice in {"Q", "0"}:
             print("你暂时离开青岭。")
             return
 

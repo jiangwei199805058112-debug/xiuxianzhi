@@ -120,6 +120,7 @@ class Player:
     alchemy_furnace_id: str = "none"
     equipment_inventory: Dict[str, int] = field(default_factory=dict)
     equipped_items: Dict[str, str] = field(default_factory=lambda: {slot: "" for slot in EQUIPMENT_SLOTS})
+    tutorial_flags: List[str] = field(default_factory=list)
     total_actions: int = 0
     ending_flags: List[str] = field(default_factory=list)
 
@@ -276,6 +277,7 @@ class Player:
 
         ensure_spirit_fields(self)
         ensure_equipment(self)
+        self.tutorial_flags = [str(flag) for flag in self.tutorial_flags if str(flag)]
 
     def advance_action(self) -> None:
         self.total_actions += 1
@@ -395,6 +397,7 @@ class Player:
             "alchemy_furnace_id": self.alchemy_furnace_id,
             "equipment_inventory": self.equipment_inventory,
             "equipped_items": self.equipped_items,
+            "tutorial_flags": self.tutorial_flags,
             "total_actions": self.total_actions,
             "ending_flags": self.ending_flags,
         }
@@ -483,6 +486,7 @@ class Player:
             alchemy_furnace_id=str(data.get("alchemy_furnace_id", "none") or "none"),
             equipment_inventory=dict(data.get("equipment_inventory") or {}),
             equipped_items=dict(data.get("equipped_items") or {}),
+            tutorial_flags=list(data.get("tutorial_flags") or []),
             total_actions=_int_from(data, "total_actions", 0),
             ending_flags=list(data.get("ending_flags", [])),
         )
