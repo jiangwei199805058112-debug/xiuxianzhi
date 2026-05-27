@@ -159,3 +159,5 @@ python simulate.py
 ## 设定优先级
 
 后续世界观、NPC、剧情和系统设计以 `docs/canon/00_content_master.md` 为最高优先级设定母版。若新增设定与该文件冲突，应先修订母版或在相关文档中说明取舍。
+
+`docs/design/romance_relationship_system.md` 是成人情缘、双修、亲密关系后果与情缘事件池的设计文档。后续情缘系统开发时应先参考 `docs/canon/00_content_master.md`，再参考该文件。
