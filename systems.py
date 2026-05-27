@@ -6,7 +6,7 @@ import random
 from typing import Callable, Dict, List
 
 from data import ACTION_NAMES, ATTRIBUTE_NAMES, MARKET_GOODS, MARKET_PRICES, MONTHLY_EVENTS, NPCS
-from heishui_market import market_action as heishui_market_action
+from heishui_market import market_action as heishui_market_action, resolve_monthly_risk_event
 from player import Player
 
 
@@ -462,11 +462,20 @@ def monthly_event(player: Player) -> str:
     event = random.choice(MONTHLY_EVENTS)
     for attr, value in event["effects"].items():
         setattr(player, attr, getattr(player, attr) + int(value))
+    heishui_text = resolve_monthly_risk_event(player)
     player.clamp()
     effects_text = "，".join(
         f"{ATTRIBUTE_NAMES.get(key, key)}{value:+d}" for key, value in event["effects"].items()
     )
-    return f"月末事件：{event['title']}\n{event['text']}\n影响：{effects_text}\n本月高年份灵草正常出售次数已重置。"
+    lines = [
+        f"月末事件：{event['title']}",
+        str(event["text"]),
+        f"影响：{effects_text}",
+    ]
+    if heishui_text:
+        lines.append(heishui_text)
+    lines.append("本月高年份灵草正常出售次数已重置。")
+    return "\n".join(lines)
 
 
 def risk_summary(player: Player) -> List[str]:
@@ -479,4 +488,6 @@ def risk_summary(player: Player) -> List[str]:
         warnings.append("残破魂幡带来的魔气已经难以完全遮掩。")
     if player.karma >= 50:
         warnings.append("业力过重，隐藏线结局风险升高。")
+    if player.tracking_marks > 0:
+        warnings.append("你在黑水坊市留下了追踪痕迹，月末可能招来麻烦。")
     return warnings

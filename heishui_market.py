@@ -23,6 +23,8 @@ class MarketConfig:
     refresh_rules: List[Dict[str, Any]]
     unlock_rules: List[Dict[str, Any]]
     enums: List[Dict[str, Any]]
+    blindbox_pools: List[Dict[str, Any]]
+    risk_events: List[Dict[str, Any]]
 
 
 _CONFIG_CACHE: Optional[MarketConfig] = None
@@ -59,6 +61,8 @@ def load_config() -> MarketConfig:
             refresh_rules=_load_json("refresh_rules.json"),
             unlock_rules=_load_json("unlock_rules.json"),
             enums=_load_json("enums.json"),
+            blindbox_pools=_load_json("blindbox_pools.json"),
+            risk_events=_load_json("heishui_risk_events.json"),
         )
     return _CONFIG_CACHE
 
@@ -78,6 +82,64 @@ def _first_number(text: Any, default: int = 0) -> int:
 def _split_tags(value: Any) -> List[str]:
     text = str(value or "").replace("，", ",").replace("、", ",").replace("/", ",")
     return [part.strip() for part in text.split(",") if part.strip()]
+
+
+def _parse_weight_table(value: Any) -> List[Tuple[str, int]]:
+    rows: List[Tuple[str, int]] = []
+    for part in _split_tags(value):
+        if ":" not in part:
+            continue
+        name, weight_text = part.split(":", 1)
+        rows.append((name.strip(), max(1, _to_int(weight_text, 1))))
+    return rows
+
+
+def _weighted_choice(weighted_rows: List[Tuple[Any, int]]) -> Any:
+    if not weighted_rows:
+        return None
+    total = sum(max(1, weight) for _, weight in weighted_rows)
+    roll = random.uniform(0, total)
+    cursor = 0.0
+    for value, weight in weighted_rows:
+        cursor += max(1, weight)
+        if roll <= cursor:
+            return value
+    return weighted_rows[-1][0]
+
+
+def _effect_label(attr: str) -> str:
+    labels = {
+        "spirit_stones": "灵石",
+        "herbs": "普通灵草",
+        "pills": "丹药",
+        "talisman_fire": "火弹符",
+        "black_market_clue": "黑市线索",
+        "exposure": "暴露度",
+        "heart_demon": "心魔值",
+        "demonic_qi": "魔气值",
+        "karma": "业力值",
+        "tracking_marks": "追踪标记",
+        "righteous_reputation": "正道声望",
+        "hp": "气血",
+        "attack": "攻击",
+        "combat_exp": "斗法经验",
+        "divine_sense": "神识",
+    }
+    return labels.get(attr, attr)
+
+
+def _apply_effects_dict(player: Player, effects: Dict[str, Any]) -> List[str]:
+    notes: List[str] = []
+    for attr, value in effects.items():
+        amount = _to_int(value)
+        if amount == 0:
+            continue
+        if attr == "hp":
+            player.hp = min(player.max_hp, player.hp + amount)
+        else:
+            setattr(player, attr, getattr(player, attr, 0) + amount)
+        notes.append(f"{_effect_label(attr)}{amount:+d}")
+    return notes
 
 
 def _item_text_fields(item: Dict[str, Any]) -> str:
@@ -253,7 +315,7 @@ def _rule_for_shop(config: MarketConfig, shop_id: str) -> Dict[str, Any]:
 def _eligible_items(config: MarketConfig, shop_id: str, rule: Dict[str, Any], player: Player) -> List[Dict[str, Any]]:
     categories = set(_split_tags(rule.get("eligible_categories")))
     shop = _find_shop(config, shop_id)
-    if shop and not _condition_ok(player, rule.get("min_player_stage"), shop):
+    if shop and shop_id != "shop_heishi" and not _condition_ok(player, rule.get("min_player_stage"), shop):
         return []
     eligible: List[Dict[str, Any]] = []
     for item in config.items:
@@ -305,7 +367,14 @@ def _make_stock_entry(config: MarketConfig, item: Dict[str, Any], shop: Dict[str
     price_low = _to_int(item.get("price_min"), 1)
     price_high = max(price_low, _to_int(item.get("price_max"), price_low))
     base_price = random.randint(price_low, price_high)
-    event_price_modifier = 1 + _event_price_modifier(config, player.heishui_market_events, item) / 100
+    price_modifier_pct = _event_price_modifier(config, player.heishui_market_events, item)
+    if player.heishui_price_modifier_month == player.month:
+        item_text = _item_text_fields(item)
+        for category, modifier in player.heishui_price_modifiers.items():
+            if category and category in item_text:
+                price_modifier_pct += _to_int(modifier)
+    price_modifier_pct = max(-50, min(price_modifier_pct, 150))
+    event_price_modifier = 1 + price_modifier_pct / 100
     shop_multiplier = float(shop.get("price_multiplier") or 1.0)
     price = max(1, int(round(base_price * shop_multiplier * event_price_modifier)))
 
@@ -480,6 +549,143 @@ def _apply_numeric_effect(player: Player, attr: str, amount: int) -> None:
         setattr(player, attr, getattr(player, attr) + amount)
 
 
+def _roll_intel_quality(item: Dict[str, Any]) -> str:
+    pool = _parse_weight_table(item.get("quality_pool"))
+    if not pool:
+        return str(item.get("grade") or "普通情报")
+    return str(_weighted_choice(pool))
+
+
+def _quality_power(quality: str) -> int:
+    if quality == "精准情报":
+        return 2
+    if quality in {"普通情报", "公开消息", "隐秘消息", "精良"}:
+        return 1
+    if quality == "稀有":
+        return 2
+    if quality == "模糊情报":
+        return 1 if random.random() < 0.55 else 0
+    if quality == "错误情报":
+        return -1
+    return 0
+
+
+def _add_tournament_intel_bonus(player: Player, section: str, amount: int) -> None:
+    current = _to_int(player.heishui_tournament_bonuses.get(section))
+    player.heishui_tournament_bonuses[section] = max(-2, min(2, current + amount))
+
+
+def _apply_intel_service(player: Player, item: Dict[str, Any], notes: List[str]) -> List[str]:
+    name = str(item.get("name", "情报"))
+    effect_type = str(item.get("effect_type", ""))
+    effect_value = str(item.get("effect_value", ""))
+    quality = _roll_intel_quality(item)
+    power = _quality_power(quality)
+    player.heishui_intel_purchase_count += 1
+    player.intelligence += 1 if power >= 0 else 0
+    _append_log(player, f"{name}（{quality}）：{effect_value}")
+    notes.append(f"情报品质：{quality}")
+
+    if "解锁黑市" in effect_type:
+        player.has_black_market_password = True
+        player.black_market_password_month = player.month
+        player.black_market_clue += 1
+        player.heishui_black_intro_count += 1
+        notes.append("获得本月黑市暗号，暗坊黑市已解锁")
+        notes.append("情报写入日志")
+        return notes
+
+    if quality == "过期情报":
+        notes.append("情报已经过期，没有实际效果")
+        notes.append("情报写入日志")
+        return notes
+
+    if "百药山灵草线索" in effect_type or "探索" in str(item.get("subtype", "")):
+        if power > 0:
+            player.explore_intel_bonus += power
+            notes.append(f"下一次百药山采药情报修正+{power}")
+        elif power < 0:
+            player.exposure += 3
+            notes.append("误信采药传闻，暴露度+3")
+    elif "大比对手情报" in effect_type or "家族情报" in str(item.get("subtype", "")):
+        section = random.choice(["mind", "trial", "combat"])
+        _add_tournament_intel_bonus(player, section, power)
+        section_name = {"mind": "测灵问心", "trial": "百药山试炼", "combat": "斗法台"}[section]
+        if power >= 0:
+            notes.append(f"{section_name}获得小幅情报修正")
+        else:
+            player.heart_demon += 1
+            notes.append(f"{section_name}情报误导，心魔值+1")
+    elif "坊市行情消息" in effect_type or "价格预测" in effect_type:
+        categories = _split_tags(item.get("market_categories")) or ["丹药", "符箓", "盲盒", "黑市道具"]
+        category = random.choice(categories)
+        modifier = _to_int(item.get("price_modifier_pct"), -10)
+        if power < 0:
+            modifier = abs(modifier)
+            player.exposure += 2
+            notes.append("行情传闻反向，暴露度+2")
+        elif power == 0:
+            notes.append("行情消息模糊，只能作参考")
+            notes.append("情报写入日志")
+            return notes
+        player.heishui_price_modifiers[category] = modifier * max(1, abs(power))
+        player.heishui_price_modifier_month = min(12, player.month + 1)
+        notes.append(f"下月{category}价格修正{player.heishui_price_modifiers[category]:+d}%")
+    elif "黑市暗号线索" in effect_type or "黑市" in effect_value:
+        player.heishui_black_intro_count += 1
+        if power > 0:
+            player.black_market_clue += power
+            if power >= 2:
+                player.has_black_market_password = True
+                player.black_market_password_month = player.month
+            notes.append("获得黑市暗号线索，暗坊黑市更容易解锁")
+        elif power < 0:
+            player.exposure += 5
+            player.tracking_marks += 1
+            notes.append("黑市暗号有误，暴露度+5，追踪标记+1")
+    else:
+        if power > 0:
+            player.intelligence += power
+            notes.append(f"情报值额外+{power}")
+        elif power < 0:
+            player.heart_demon += 1
+            notes.append("情报误导，心魔值+1")
+
+    notes.append("情报写入日志")
+    return notes
+
+
+def _apply_fengyue_service(player: Player, item: Dict[str, Any], shop: Dict[str, Any], price: int, notes: List[str]) -> List[str]:
+    effect_type = str(item.get("effect_type", ""))
+    npc_id = str(shop.get("npc_id", ""))
+    if "听曲静心" in effect_type:
+        drop = random.randint(3, 5)
+        player.heart_demon -= drop
+        player.dao_heart += 1
+        notes.append(f"场景淡出处理：听曲静心，心魔值-{drop}，道心+1")
+        return notes
+    if "风月传闻" in effect_type or "获得传闻" in effect_type:
+        fake_item = dict(item)
+        fake_item["effect_type"] = random.choice(["百药山灵草线索", "大比对手情报", "坊市行情消息"])
+        notes = _apply_intel_service(player, fake_item, notes)
+        if random.random() < 0.35:
+            player.exposure += 2
+            notes.append("人多口杂，暴露度+2")
+        return notes
+    if "结识风月楼管事" in effect_type:
+        player.heishui_npc_affection[npc_id] = player.heishui_npc_affection.get(npc_id, 0) + 8
+        player.charm += 1
+        notes.append("场景淡出处理：结识管事，风月楼关系+8，魅力+1")
+        return notes
+
+    player.dao_heart += 2
+    player.heart_demon -= 3
+    player.charm += 1 if price >= 10 else 0
+    player.heishui_npc_affection[npc_id] = player.heishui_npc_affection.get(npc_id, 0) + 3
+    notes.append("场景淡出处理：心境舒缓，人脉略增")
+    return notes
+
+
 def _apply_item_effect(player: Player, item: Dict[str, Any], shop: Dict[str, Any], price: int) -> List[str]:
     effect_type = str(item.get("effect_type", ""))
     effect_value = str(item.get("effect_value", ""))
@@ -489,7 +695,7 @@ def _apply_item_effect(player: Player, item: Dict[str, Any], shop: Dict[str, Any
     number = _first_number(effect_value, 0)
 
     if category == "盲盒":
-        notes.extend(_resolve_blindbox(player, item))
+        notes.extend(_resolve_blindbox(player, item, price))
         return notes
 
     if category == "符箓":
@@ -498,27 +704,10 @@ def _apply_item_effect(player: Player, item: Dict[str, Any], shop: Dict[str, Any
         return notes
 
     if category == "情报服务" or "情报" in effect_type:
-        player.intelligence += 2 if "隐秘" in str(item.get("grade", "")) else 1
-        _append_log(player, f"{name}：{effect_value}")
-        if "探索" in str(item.get("subtype", "")) or "下一次探索" in effect_value:
-            player.explore_intel_bonus += 1
-            notes.append("下一次探索获得情报修正")
-        if "解锁黑市" in effect_type or "黑市" in effect_value:
-            player.has_black_market_password = True
-            player.black_market_password_month = player.month
-            player.black_market_clue += 1
-            notes.append("获得本月黑市暗号，暗坊黑市已解锁")
-        notes.append("情报写入日志")
-        return notes
+        return _apply_intel_service(player, item, notes)
 
     if category == "社交服务":
-        player.dao_heart += 2
-        player.heart_demon -= 3
-        player.charm += 1 if price >= 10 else 0
-        npc_id = str(shop.get("npc_id", ""))
-        player.heishui_npc_affection[npc_id] = player.heishui_npc_affection.get(npc_id, 0) + 3
-        notes.append("场景淡出处理：心境舒缓，人脉略增")
-        return notes
+        return _apply_fengyue_service(player, item, shop, price, notes)
 
     if "气血恢复" in effect_type:
         recovery = max(5, player.max_hp * number // 100 if "%" in effect_value else number)
@@ -552,6 +741,21 @@ def _apply_item_effect(player: Player, item: Dict[str, Any], shop: Dict[str, Any
         player.heart_demon += 8
         player.karma += 5
         notes.append("境界强行提升，但心魔与业力上升")
+    elif "残缺魔修手札" in effect_type:
+        player.combat_exp += 2
+        player.divine_sense += 1
+        notes.append("斗法经验+2，神识+1")
+    elif "来历不明聚气丹" in effect_type:
+        player.gain_cultivation_progress(18)
+        notes.append("修炼进度+18")
+    elif "破损阵盘" in effect_type:
+        player.exposure -= 4
+        player.market_flags.append("破损阵盘")
+        notes.append("你临时布下遮掩阵纹，暴露度-4")
+    elif "假身份木牌" in effect_type:
+        player.exposure -= 4
+        player.market_flags.append("假身份木牌")
+        notes.append("你多了一层假身份遮掩，暴露度-4")
     elif "支线开启" in effect_type or "法器升级" in effect_type or "副本解锁" in effect_type:
         player.market_flags.append(str(item.get("item_id")))
         notes.append("相关线索已记录")
@@ -577,29 +781,53 @@ def _apply_talisman(player: Player, name: str, subtype: str) -> None:
         player.market_inventory[name] = player.market_inventory.get(name, 0) + 1
 
 
-def _resolve_blindbox(player: Player, item: Dict[str, Any]) -> List[str]:
+def _resolve_blindbox(player: Player, item: Dict[str, Any], price: int) -> List[str]:
+    config = load_config()
+    item_id = str(item.get("item_id"))
+    pool = [
+        row
+        for row in config.blindbox_pools
+        if item_id in _split_tags(row.get("item_ids"))
+    ]
     notes: List[str] = []
-    luck_score = player.luck * 4 + player.divine_sense + random.randint(1, 100)
-    name = str(item.get("name"))
-    if luck_score >= 85:
-        gain = random.randint(30, 80)
-        player.spirit_stones += gain
-        player.luck += 1
-        notes.append(f"{name}开出值钱遗物，灵石+{gain}，气运+1")
-    elif luck_score >= 55:
-        gain = random.randint(8, 25)
-        player.spirit_stones += gain
-        _add_inventory(player, item)
-        notes.append(f"{name}开出零散杂物，灵石+{gain}")
-    elif luck_score >= 30:
+    if not pool:
+        player.heishui_blindbox_net -= price
         player.exposure += 3
-        player.market_flags.append("假货")
-        notes.append(f"{name}多半是假货，暴露度+3")
-    else:
-        player.exposure += 6
-        player.tracking_marks += 1
+        player.market_flags.append("未知盲盒")
+        return [f"{item.get('name')}内里杂乱难辨，你暂时只觉亏损，暴露度+3"]
+
+    weighted: List[Tuple[Dict[str, Any], int]] = []
+    appraisal = player.luck * 2 + player.divine_sense // 2
+    for outcome in pool:
+        weight = max(1, _to_int(outcome.get("weight"), 1))
+        quality = str(outcome.get("quality", ""))
+        if quality in {"small", "medium", "unlock"}:
+            weight += appraisal
+        elif quality == "dark":
+            weight += player.luck
+        elif quality in {"loss", "tracked"}:
+            weight = max(1, weight - appraisal // 2)
+        weighted.append((outcome, weight))
+
+    outcome = _weighted_choice(weighted)
+    gain = random.randint(_to_int(outcome.get("stone_min")), _to_int(outcome.get("stone_max")))
+    if gain:
+        player.spirit_stones += gain
+    effects = outcome.get("effects", {})
+    if isinstance(effects, dict):
+        notes.extend(_apply_effects_dict(player, effects))
+    player.heishui_blindbox_net += gain - price
+    if outcome.get("outcome_id") == "empty":
+        player.market_flags.append("盲盒亏损")
+    if outcome.get("outcome_id") == "tracked":
         player.market_flags.append("追踪标记")
-        notes.append(f"{name}残留神识标记，你可能被原主仇家追踪")
+    if outcome.get("outcome_id") == "black_clue":
+        player.market_flags.append("黑市线索")
+    if outcome.get("outcome_id") == "demonic_item":
+        player.market_flags.append("魔道盲盒物")
+
+    result_text = str(outcome.get("result_text") or f"{item.get('name')}开出{outcome.get('name')}")
+    notes.append(f"{result_text} 盲盒净收益{gain - price:+d}灵石")
     return notes
 
 
@@ -625,6 +853,18 @@ def buy_item(player: Player, shop_id: str, item_id: str, quantity: int = 1) -> s
 
     player.spirit_stones -= total_price
     player.heishui_market_spent += total_price
+    player.heishui_purchase_count += quantity
+    category = str(item.get("category", ""))
+    if category == "盲盒":
+        player.heishui_blindbox_purchase_count += quantity
+        if item_id == "item_blind_bloodbag":
+            player.heishui_bloodbag_bought += quantity
+            player.heishui_bloodbag_bought_this_month += quantity
+            player.market_flags.append("买过沾血储物袋")
+    if shop_id == "shop_heishi":
+        player.heishui_black_market_purchase_count += quantity
+        player.heishui_black_market_bought_this_month += quantity
+        player.market_flags.append(f"黑市购物:{item_id}")
     entry["stock"] = _to_int(entry.get("stock")) - quantity
     if entry["stock"] <= 0:
         stock.remove(entry)
@@ -727,6 +967,56 @@ def leave_market_check(player: Player) -> str:
         player.clamp()
         return "你离开坊市时察觉有人尾随，绕了半个时辰才甩开。暴露度+3，心魔值+1。"
     return "你离开坊市时有人远远盯着，但最终没有跟上来。"
+
+
+def _condition_value(player: Player, name: str) -> int:
+    if name == "has_black_market_password":
+        return 1 if player.has_black_market_password else 0
+    return _to_int(getattr(player, name, 0))
+
+
+def _risk_condition_ok(player: Player, condition: Any) -> bool:
+    text = str(condition or "").strip()
+    if not text:
+        return True
+    for token in re.split(r"\s+or\s+", text):
+        match = re.search(r"([a-zA-Z_]+)\s*>=\s*(-?\d+)", token.strip())
+        if match and _condition_value(player, match.group(1)) >= int(match.group(2)):
+            return True
+    return False
+
+
+def resolve_monthly_risk_event(player: Player) -> str:
+    config = load_config()
+    eligible = [event for event in config.risk_events if _risk_condition_ok(player, event.get("condition"))]
+    risk_score = (
+        player.tracking_marks * 8
+        + max(0, player.exposure - 45) // 2
+        + max(0, player.karma - 20) // 3
+        + max(0, player.demonic_qi - 20) // 3
+        + player.heishui_black_market_bought_this_month * 8
+        + player.heishui_bloodbag_bought_this_month * 6
+        + (6 if player.has_black_market_password or player.heishui_black_intro_count > 0 else 0)
+    )
+    triggered = ""
+    if eligible and risk_score > 0:
+        chance = min(55, 4 + risk_score)
+        if random.randint(1, 100) <= chance:
+            weighted = [(event, _to_int(event.get("weight"), 1) + _to_int(event.get("base_chance"), 0)) for event in eligible]
+            event = _weighted_choice(weighted)
+            effects = event.get("effects", {})
+            effect_notes = _apply_effects_dict(player, effects if isinstance(effects, dict) else {})
+            player.heishui_risk_event_count += 1
+            triggered = (
+                f"黑水坊市风险：{event.get('name')}\n"
+                f"{event.get('text')}\n"
+                f"影响：{'，'.join(effect_notes) if effect_notes else '无'}"
+            )
+
+    player.heishui_black_market_bought_this_month = 0
+    player.heishui_bloodbag_bought_this_month = 0
+    player.clamp()
+    return triggered
 
 
 def display_shop_stock(player: Player, shop: Dict[str, Any]) -> str:

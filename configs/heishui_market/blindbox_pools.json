@@ -1,0 +1,93 @@
+[
+  {
+    "pool_id": "blood_storage_bag",
+    "item_ids": "item_blind_bloodbag,item_blind_dusty_pouch",
+    "outcome_id": "empty",
+    "name": "空包破烂",
+    "quality": "loss",
+    "weight": 28,
+    "stone_min": 0,
+    "stone_max": 0,
+    "effects": {
+      "exposure": 1
+    },
+    "result_text": "袋中只剩几片霉烂符纸，你白白亏了一笔。"
+  },
+  {
+    "pool_id": "blood_storage_bag",
+    "item_ids": "item_blind_bloodbag,item_blind_dusty_pouch",
+    "outcome_id": "material",
+    "name": "普通材料",
+    "quality": "small",
+    "weight": 24,
+    "stone_min": 4,
+    "stone_max": 10,
+    "effects": {
+      "herbs": 2
+    },
+    "result_text": "袋中翻出几份普通材料和零散灵石。"
+  },
+  {
+    "pool_id": "blood_storage_bag",
+    "item_ids": "item_blind_bloodbag,item_blind_dusty_pouch",
+    "outcome_id": "pill_talisman",
+    "name": "丹药符箓",
+    "quality": "medium",
+    "weight": 18,
+    "stone_min": 0,
+    "stone_max": 8,
+    "effects": {
+      "pills": 1,
+      "talisman_fire": 1,
+      "heart_demon": 1
+    },
+    "result_text": "你找到一枚药性不明的丹药和一张火系符箓，药气略显驳杂。"
+  },
+  {
+    "pool_id": "blood_storage_bag",
+    "item_ids": "item_blind_bloodbag,item_blind_dusty_pouch",
+    "outcome_id": "black_clue",
+    "name": "黑市线索",
+    "quality": "unlock",
+    "weight": 12,
+    "stone_min": 0,
+    "stone_max": 5,
+    "effects": {
+      "black_market_clue": 1,
+      "exposure": 5
+    },
+    "result_text": "夹层里藏着一枚暗坊木签，但上面的血迹也可能引来盘查。"
+  },
+  {
+    "pool_id": "blood_storage_bag",
+    "item_ids": "item_blind_bloodbag,item_blind_dusty_pouch",
+    "outcome_id": "demonic_item",
+    "name": "魔道物品",
+    "quality": "dark",
+    "weight": 8,
+    "stone_min": 16,
+    "stone_max": 35,
+    "effects": {
+      "attack": 2,
+      "demonic_qi": 6,
+      "karma": 5,
+      "tracking_marks": 1
+    },
+    "result_text": "你摸到一枚阴冷骨片，短期有助斗法，却让魔气缠身。"
+  },
+  {
+    "pool_id": "blood_storage_bag",
+    "item_ids": "item_blind_bloodbag,item_blind_dusty_pouch",
+    "outcome_id": "tracked",
+    "name": "被盯上",
+    "quality": "tracked",
+    "weight": 10,
+    "stone_min": 0,
+    "stone_max": 0,
+    "effects": {
+      "exposure": 8,
+      "tracking_marks": 2
+    },
+    "result_text": "袋口残留一道神识暗记，你刚收起便觉背后有人盯来。"
+  }
+]

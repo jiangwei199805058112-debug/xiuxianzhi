@@ -83,5 +83,30 @@
     "enum_type": "risk_tag",
     "value": "业力",
     "description": "影响天劫、正道态度和隐藏结局。"
+  },
+  {
+    "enum_type": "intel_quality",
+    "value": "模糊情报",
+    "description": "概率生效，通常只给小幅修正。"
+  },
+  {
+    "enum_type": "intel_quality",
+    "value": "普通情报",
+    "description": "较稳定的小幅收益。"
+  },
+  {
+    "enum_type": "intel_quality",
+    "value": "精准情报",
+    "description": "收益更明确，但仍不提供大量加分。"
+  },
+  {
+    "enum_type": "intel_quality",
+    "value": "错误情报",
+    "description": "可能产生反效果。"
+  },
+  {
+    "enum_type": "intel_quality",
+    "value": "过期情报",
+    "description": "没有实际效果。"
   }
 ]

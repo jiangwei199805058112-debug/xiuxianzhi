@@ -83,12 +83,25 @@ class Player:
     heishui_market_stock: Dict[str, List[Dict[str, Any]]] = field(default_factory=dict)
     heishui_market_events: List[str] = field(default_factory=list)
     heishui_market_spent: int = 0
+    heishui_purchase_count: int = 0
+    heishui_intel_purchase_count: int = 0
+    heishui_black_market_purchase_count: int = 0
+    heishui_blindbox_purchase_count: int = 0
+    heishui_blindbox_net: int = 0
+    heishui_black_intro_count: int = 0
+    heishui_black_market_bought_this_month: int = 0
+    heishui_bloodbag_bought: int = 0
+    heishui_bloodbag_bought_this_month: int = 0
+    heishui_risk_event_count: int = 0
     heishui_npc_affection: Dict[str, int] = field(default_factory=dict)
     market_inventory: Dict[str, int] = field(default_factory=dict)
     intelligence_log: List[str] = field(default_factory=list)
     market_flags: List[str] = field(default_factory=list)
     consignment_items: List[Dict[str, Any]] = field(default_factory=list)
     explore_intel_bonus: int = 0
+    heishui_tournament_bonuses: Dict[str, int] = field(default_factory=dict)
+    heishui_price_modifiers: Dict[str, int] = field(default_factory=dict)
+    heishui_price_modifier_month: int = 0
     tracking_marks: int = 0
     total_actions: int = 0
     ending_flags: List[str] = field(default_factory=list)
@@ -168,7 +181,17 @@ class Player:
             "black_market_password_month",
             "heishui_market_month",
             "heishui_market_spent",
+            "heishui_purchase_count",
+            "heishui_intel_purchase_count",
+            "heishui_black_market_purchase_count",
+            "heishui_blindbox_purchase_count",
+            "heishui_black_intro_count",
+            "heishui_black_market_bought_this_month",
+            "heishui_bloodbag_bought",
+            "heishui_bloodbag_bought_this_month",
+            "heishui_risk_event_count",
             "explore_intel_bonus",
+            "heishui_price_modifier_month",
             "tracking_marks",
             "total_actions",
         ]
@@ -222,6 +245,17 @@ class Player:
             else:
                 self.market_inventory[str(key)] = count
 
+        for mapping_name in ("heishui_tournament_bonuses", "heishui_price_modifiers"):
+            mapping = getattr(self, mapping_name)
+            for key, value in list(mapping.items()):
+                try:
+                    mapping[str(key)] = int(value)
+                except (TypeError, ValueError):
+                    del mapping[key]
+
+        if self.heishui_price_modifier_month and self.heishui_price_modifier_month < self.month:
+            self.heishui_price_modifiers = {}
+
     def advance_action(self) -> None:
         self.total_actions += 1
         self.clamp()
@@ -248,7 +282,7 @@ class Player:
             f"隐患：暴露度{self.exposure}｜心魔值{self.heart_demon}｜魔气值{self.demonic_qi}｜业力值{self.karma}\n"
             f"名声：正道声望{self.righteous_reputation}\n"
             f"族人好感：{affection_text}\n"
-            f"隐藏：古玉瓶{jade_text}｜残破魂幡{banner_text}｜黑市暗号{'已持有' if self.has_black_market_password else '未持有'}｜情意锁低阶｜炼魂次数{self.souls_refined}"
+            f"隐藏：古玉瓶{jade_text}｜残破魂幡{banner_text}｜黑市暗号{'已持有' if self.has_black_market_password else '未持有'}｜追踪标记{self.tracking_marks}｜情意锁低阶｜炼魂次数{self.souls_refined}"
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -305,12 +339,25 @@ class Player:
             "heishui_market_stock": self.heishui_market_stock,
             "heishui_market_events": self.heishui_market_events,
             "heishui_market_spent": self.heishui_market_spent,
+            "heishui_purchase_count": self.heishui_purchase_count,
+            "heishui_intel_purchase_count": self.heishui_intel_purchase_count,
+            "heishui_black_market_purchase_count": self.heishui_black_market_purchase_count,
+            "heishui_blindbox_purchase_count": self.heishui_blindbox_purchase_count,
+            "heishui_blindbox_net": self.heishui_blindbox_net,
+            "heishui_black_intro_count": self.heishui_black_intro_count,
+            "heishui_black_market_bought_this_month": self.heishui_black_market_bought_this_month,
+            "heishui_bloodbag_bought": self.heishui_bloodbag_bought,
+            "heishui_bloodbag_bought_this_month": self.heishui_bloodbag_bought_this_month,
+            "heishui_risk_event_count": self.heishui_risk_event_count,
             "heishui_npc_affection": self.heishui_npc_affection,
             "market_inventory": self.market_inventory,
             "intelligence_log": self.intelligence_log,
             "market_flags": self.market_flags,
             "consignment_items": self.consignment_items,
             "explore_intel_bonus": self.explore_intel_bonus,
+            "heishui_tournament_bonuses": self.heishui_tournament_bonuses,
+            "heishui_price_modifiers": self.heishui_price_modifiers,
+            "heishui_price_modifier_month": self.heishui_price_modifier_month,
             "tracking_marks": self.tracking_marks,
             "total_actions": self.total_actions,
             "ending_flags": self.ending_flags,
@@ -375,12 +422,25 @@ class Player:
             heishui_market_stock=dict(data.get("heishui_market_stock") or {}),
             heishui_market_events=list(data.get("heishui_market_events") or []),
             heishui_market_spent=_int_from(data, "heishui_market_spent", 0),
+            heishui_purchase_count=_int_from(data, "heishui_purchase_count", 0),
+            heishui_intel_purchase_count=_int_from(data, "heishui_intel_purchase_count", 0),
+            heishui_black_market_purchase_count=_int_from(data, "heishui_black_market_purchase_count", 0),
+            heishui_blindbox_purchase_count=_int_from(data, "heishui_blindbox_purchase_count", 0),
+            heishui_blindbox_net=_int_from(data, "heishui_blindbox_net", 0),
+            heishui_black_intro_count=_int_from(data, "heishui_black_intro_count", 0),
+            heishui_black_market_bought_this_month=_int_from(data, "heishui_black_market_bought_this_month", 0),
+            heishui_bloodbag_bought=_int_from(data, "heishui_bloodbag_bought", 0),
+            heishui_bloodbag_bought_this_month=_int_from(data, "heishui_bloodbag_bought_this_month", 0),
+            heishui_risk_event_count=_int_from(data, "heishui_risk_event_count", 0),
             heishui_npc_affection=dict(data.get("heishui_npc_affection") or {}),
             market_inventory=dict(data.get("market_inventory") or {}),
             intelligence_log=list(data.get("intelligence_log") or []),
             market_flags=list(data.get("market_flags") or []),
             consignment_items=list(data.get("consignment_items") or []),
             explore_intel_bonus=_int_from(data, "explore_intel_bonus", 0),
+            heishui_tournament_bonuses=dict(data.get("heishui_tournament_bonuses") or {}),
+            heishui_price_modifiers=dict(data.get("heishui_price_modifiers") or {}),
+            heishui_price_modifier_month=_int_from(data, "heishui_price_modifier_month", 0),
             tracking_marks=_int_from(data, "tracking_marks", 0),
             total_actions=_int_from(data, "total_actions", 0),
             ending_flags=list(data.get("ending_flags", [])),

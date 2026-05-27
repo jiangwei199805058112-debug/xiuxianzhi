@@ -47,7 +47,15 @@ def _talisman_combat_bonus(player: Player) -> int:
     return min(3, guard_bonus + fire_bonus + avoid_fire_bonus + break_armor_bonus)
 
 
+def _intel_bonus(player: Player, section: str, cap_value: int = 2) -> int:
+    bonus = int(player.heishui_tournament_bonuses.get(section, 0))
+    return max(-cap_value, min(cap_value, bonus))
+
+
 def run_tournament(player: Player) -> Dict[str, object]:
+    mind_intel_bonus = _intel_bonus(player, "mind")
+    trial_intel_bonus = _intel_bonus(player, "trial")
+    combat_intel_bonus = _intel_bonus(player, "combat")
     mind_score = _cap(
         player.realm_level * 2
         + player.cultivation_progress // 15
@@ -59,7 +67,8 @@ def run_tournament(player: Player) -> Dict[str, object]:
         - player.heart_demon // 3
         - player.demonic_qi // 4
         - player.karma // 4
-        - max(0, player.exposure - 50) // 8,
+        - max(0, player.exposure - 50) // 8
+        + mind_intel_bonus,
         25,
     )
     trial_score = _cap(
@@ -74,7 +83,8 @@ def run_tournament(player: Player) -> Dict[str, object]:
         + min(player.spirit_stones // 10, 3)
         - player.exposure // 4
         - player.heart_demon // 8
-        - player.karma // 8,
+        - player.karma // 8
+        + trial_intel_bonus,
         35,
     )
     talisman_bonus = _talisman_combat_bonus(player)
@@ -91,7 +101,8 @@ def run_tournament(player: Player) -> Dict[str, object]:
         - player.heart_demon // 5
         - player.demonic_qi // 3
         - player.karma // 3
-        - max(0, player.exposure - 35) // 6,
+        - max(0, player.exposure - 35) // 6
+        + combat_intel_bonus,
         40,
     )
 
@@ -142,6 +153,7 @@ def run_tournament(player: Player) -> Dict[str, object]:
         "summary": summary,
         "leaderboard": leaderboard,
         "talisman_bonus": talisman_bonus,
+        "heishui_intel_bonus": mind_intel_bonus + trial_intel_bonus + combat_intel_bonus,
     }
 
 
@@ -154,6 +166,8 @@ def format_tournament_result(result: Dict[str, object]) -> str:
         lines.append(f"百药山试炼：{scores.get('百药山试炼', 0)}/35")
         lines.append(f"斗法台：{scores.get('斗法台', 0)}/40")
     lines.append(f"符箓斗法加成：+{result.get('talisman_bonus', 0)}")
+    if result.get("heishui_intel_bonus", 0):
+        lines.append(f"黑水情报修正：{int(result.get('heishui_intel_bonus', 0)):+d}")
     lines.append(f"总分：{result['total']}/100")
     lines.append(f"名次：第 {result['rank']} 名")
     lines.append(f"目标：{'达成，进入前十' if result['top_ten'] else '未达成，未入前十'}")

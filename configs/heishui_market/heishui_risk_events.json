@@ -1,0 +1,64 @@
+[
+  {
+    "event_id": "risk_sanxiu_lesuo",
+    "name": "散修勒索",
+    "condition": "tracking_marks>=1",
+    "base_chance": 10,
+    "weight": 30,
+    "text": "月末归院时，有散修拦路索要封口费。你不愿把事情闹大，只能破财消灾。",
+    "effects": {
+      "spirit_stones": -8,
+      "exposure": 2
+    }
+  },
+  {
+    "event_id": "risk_zhifat_check",
+    "name": "执法堂盘查",
+    "condition": "exposure>=60 or heishui_black_market_bought_this_month>=1",
+    "base_chance": 8,
+    "weight": 24,
+    "text": "执法堂临时盘查坊市来往修士，你虽勉强脱身，名声却受了牵连。",
+    "effects": {
+      "exposure": 5,
+      "righteous_reputation": -3
+    }
+  },
+  {
+    "event_id": "risk_heishi_tail",
+    "name": "黑市尾随者",
+    "condition": "tracking_marks>=1 or heishui_bloodbag_bought_this_month>=1",
+    "base_chance": 10,
+    "weight": 28,
+    "text": "夜里有人摸到你的院墙外，你借阵角逃开，却受了些暗伤。",
+    "effects": {
+      "hp": -6,
+      "tracking_marks": 1,
+      "heart_demon": 1
+    }
+  },
+  {
+    "event_id": "risk_moxiu_leak",
+    "name": "魔修气息外泄",
+    "condition": "karma>=30 or demonic_qi>=30",
+    "base_chance": 8,
+    "weight": 22,
+    "text": "你运功时一缕阴寒气机外泄，连自己都生出几分不安。",
+    "effects": {
+      "heart_demon": 3,
+      "demonic_qi": 2,
+      "karma": 2
+    }
+  },
+  {
+    "event_id": "risk_tianji_warning",
+    "name": "天机阁警告",
+    "condition": "tracking_marks>=1 or has_black_market_password>=1",
+    "base_chance": 6,
+    "weight": 16,
+    "text": "天机阁伙计递来半张纸条：近日有人查你来路。你及时收敛踪迹。",
+    "effects": {
+      "tracking_marks": -1,
+      "exposure": -2
+    }
+  }
+]
