@@ -83,6 +83,25 @@ class Player:
     demonic_qi: int = 0
     karma: int = 0
     righteous_reputation: int = 0
+    reputation: int = 0
+    enemy_count: int = 0
+    theft_skill: int = 0
+    theft_exp: int = 0
+    theft_attempts: int = 0
+    theft_successes: int = 0
+    theft_failures: int = 0
+    theft_compensations: int = 0
+    theft_refusals: int = 0
+    theft_escape_count: int = 0
+    stolen_manual_fragments: int = 0
+    stolen_cultivation_count: int = 0
+    stolen_luck_count: int = 0
+    stolen_opportunity_count: int = 0
+    stolen_fate_count: int = 0
+    stolen_lifespan_count: int = 0
+    stolen_inheritance_count: int = 0
+    theft_exposure_gain: int = 0
+    theft_karma_gain: int = 0
     npc_affection: Dict[str, int] = field(default_factory=dict)
     love_lock_level: int = 1
     has_jade_bottle: bool = False
@@ -194,6 +213,24 @@ class Player:
             "heart_demon",
             "demonic_qi",
             "karma",
+            "enemy_count",
+            "theft_skill",
+            "theft_exp",
+            "theft_attempts",
+            "theft_successes",
+            "theft_failures",
+            "theft_compensations",
+            "theft_refusals",
+            "theft_escape_count",
+            "stolen_manual_fragments",
+            "stolen_cultivation_count",
+            "stolen_luck_count",
+            "stolen_opportunity_count",
+            "stolen_fate_count",
+            "stolen_lifespan_count",
+            "stolen_inheritance_count",
+            "theft_exposure_gain",
+            "theft_karma_gain",
             "souls_refined",
             "aged_herbs_sold_this_month",
             "black_market_password_month",
@@ -233,6 +270,8 @@ class Player:
         self.demonic_qi = min(self.demonic_qi, 100)
         self.karma = min(self.karma, 100)
         self.righteous_reputation = max(-100, min(self.righteous_reputation, 100))
+        self.reputation = max(-100, min(self.reputation, 100))
+        self.theft_skill = min(self.theft_skill, 100)
         self.total_actions = max(0, min(self.total_actions, TOTAL_ACTIONS))
         if self.black_market_password_month != self.month:
             self.has_black_market_password = False
@@ -313,7 +352,8 @@ class Player:
             f"经营：灵田{len(self.spirit_fields)}块｜灵田收获{self.spirit_field_harvest_count}次｜丹炉{furnace.get('name', '无专用丹炉')}\n"
             f"装备：持有{equipment_count(self)}件｜评分{equipment_score(self)}｜加成{equipment_effect_text}\n"
             f"隐患：暴露度{self.exposure}｜心魔值{self.heart_demon}｜魔气值{self.demonic_qi}｜业力值{self.karma}\n"
-            f"名声：正道声望{self.righteous_reputation}\n"
+            f"名声：正道声望{self.righteous_reputation}｜旁门声望{self.reputation:+d}｜结仇{self.enemy_count}\n"
+            f"盗术：等级{self.theft_skill}｜经验{self.theft_exp}｜尝试{self.theft_attempts}｜成功{self.theft_successes}｜失败{self.theft_failures}｜功法残页{self.stolen_manual_fragments}\n"
             f"族人好感：{affection_text}\n"
             f"隐藏：古玉瓶{jade_text}｜残破魂幡{banner_text}｜黑市暗号{'已持有' if self.has_black_market_password else '未持有'}｜追踪标记{self.tracking_marks}｜情意锁低阶｜炼魂次数{self.souls_refined}"
         )
@@ -360,6 +400,25 @@ class Player:
             "demonic_qi": self.demonic_qi,
             "karma": self.karma,
             "righteous_reputation": self.righteous_reputation,
+            "reputation": self.reputation,
+            "enemy_count": self.enemy_count,
+            "theft_skill": self.theft_skill,
+            "theft_exp": self.theft_exp,
+            "theft_attempts": self.theft_attempts,
+            "theft_successes": self.theft_successes,
+            "theft_failures": self.theft_failures,
+            "theft_compensations": self.theft_compensations,
+            "theft_refusals": self.theft_refusals,
+            "theft_escape_count": self.theft_escape_count,
+            "stolen_manual_fragments": self.stolen_manual_fragments,
+            "stolen_cultivation_count": self.stolen_cultivation_count,
+            "stolen_luck_count": self.stolen_luck_count,
+            "stolen_opportunity_count": self.stolen_opportunity_count,
+            "stolen_fate_count": self.stolen_fate_count,
+            "stolen_lifespan_count": self.stolen_lifespan_count,
+            "stolen_inheritance_count": self.stolen_inheritance_count,
+            "theft_exposure_gain": self.theft_exposure_gain,
+            "theft_karma_gain": self.theft_karma_gain,
             "npc_affection": self.npc_affection,
             "love_lock_level": self.love_lock_level,
             "has_jade_bottle": self.has_jade_bottle,
@@ -449,6 +508,25 @@ class Player:
             demonic_qi=_int_from(data, "demonic_qi", 0),
             karma=_int_from(data, "karma", 0),
             righteous_reputation=_int_from(data, "righteous_reputation", 0),
+            reputation=_int_from(data, "reputation", 0),
+            enemy_count=_int_from(data, "enemy_count", _int_from(data, "grudges", 0)),
+            theft_skill=_int_from(data, "theft_skill", 0),
+            theft_exp=_int_from(data, "theft_exp", 0),
+            theft_attempts=_int_from(data, "theft_attempts", 0),
+            theft_successes=_int_from(data, "theft_successes", 0),
+            theft_failures=_int_from(data, "theft_failures", 0),
+            theft_compensations=_int_from(data, "theft_compensations", 0),
+            theft_refusals=_int_from(data, "theft_refusals", 0),
+            theft_escape_count=_int_from(data, "theft_escape_count", 0),
+            stolen_manual_fragments=_int_from(data, "stolen_manual_fragments", 0),
+            stolen_cultivation_count=_int_from(data, "stolen_cultivation_count", 0),
+            stolen_luck_count=_int_from(data, "stolen_luck_count", 0),
+            stolen_opportunity_count=_int_from(data, "stolen_opportunity_count", _int_from(data, "stolen_chance_count", 0)),
+            stolen_fate_count=_int_from(data, "stolen_fate_count", 0),
+            stolen_lifespan_count=_int_from(data, "stolen_lifespan_count", 0),
+            stolen_inheritance_count=_int_from(data, "stolen_inheritance_count", 0),
+            theft_exposure_gain=_int_from(data, "theft_exposure_gain", 0),
+            theft_karma_gain=_int_from(data, "theft_karma_gain", 0),
             npc_affection=dict(data.get("npc_affection") or {}),
             love_lock_level=_int_from(data, "love_lock_level", 1),
             has_jade_bottle=bool(data.get("has_jade_bottle", False)),

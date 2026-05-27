@@ -86,6 +86,21 @@ ROUTES: List[Dict[str, object]] = [
         ],
     },
     {
+        "name": "盗术投机流",
+        "weights": [
+            ("8_theft_train", 30),
+            ("8_theft_basic", 14),
+            ("8_theft_stall", 12),
+            ("8_theft_intel", 10),
+            ("8_theft_manual", 10),
+            ("8_theft_cultivation", 7),
+            ("8_theft_high", 4),
+            ("1", 6),
+            ("2", 4),
+            ("legacy_meditate", 3),
+        ],
+    },
+    {
         "name": "随心游玩流",
         "weights": [
             ("1", 5),
@@ -99,6 +114,9 @@ ROUTES: List[Dict[str, object]] = [
             ("legacy_meditate", 9),
             ("8_field", 3),
             ("8_equip", 1),
+            ("8_theft_train", 1),
+            ("8_theft_basic", 2),
+            ("8_theft_high", 1),
         ],
     },
 ]
@@ -134,6 +152,10 @@ class AutoInput:
             return self.choose_field_preparation_mode()
         if "请选择装备操作" in prompt:
             return self.choose_equipment_mode()
+        if "请选择盗术事项" in prompt:
+            return self.choose_theft_mode()
+        if "请选择处理方式" in prompt:
+            return self.choose_theft_resolution()
         if "请选择炼丹炉" in prompt:
             return self.choose_furnace()
         if "请选择购买装备" in prompt:
@@ -155,6 +177,8 @@ class AutoInput:
         return ""
 
     def choose_preparation_mode(self) -> str:
+        if self.action_token.startswith("8_theft"):
+            return "4"
         if self.action_token == "8_furnace":
             return "2"
         if self.action_token == "8_equip":
@@ -174,7 +198,7 @@ class AutoInput:
             return "1"
         if self.route_name == "随心游玩流" and random.random() < 0.55:
             return "1"
-        return "4"
+        return "5"
 
     def choose_field_preparation_mode(self) -> str:
         fields = self.player.spirit_fields
@@ -269,6 +293,61 @@ class AutoInput:
         if not self.player.equipment_inventory:
             return "0"
         return "1"
+
+    def choose_theft_mode(self) -> str:
+        token_map = {
+            "8_theft_train": "1",
+            "8_theft_basic": "2",
+            "8_theft_stall": "3",
+            "8_theft_intel": "4",
+            "8_theft_manual": "5",
+            "8_theft_cultivation": "6",
+        }
+        if self.action_token in token_map:
+            return token_map[self.action_token]
+        if self.action_token == "8_theft_high":
+            skill = self.player.theft_skill
+            if skill >= 95 and self.player.stolen_inheritance_count == 0 and random.random() < 0.10:
+                return "11"
+            if skill >= 80:
+                return weighted_choice([("9", 4), ("10", 3), ("7", 5), ("8", 5), ("6", 8), ("5", 8)])
+            if skill >= 65:
+                return weighted_choice([("7", 5), ("8", 4), ("6", 8), ("5", 8), ("4", 5)])
+            if skill >= 45:
+                return weighted_choice([("6", 8), ("5", 8), ("4", 5), ("3", 4)])
+            if skill >= 25:
+                return weighted_choice([("5", 8), ("4", 6), ("3", 4), ("2", 3)])
+            if skill >= 10:
+                return weighted_choice([("4", 5), ("3", 5), ("2", 4), ("1", 4)])
+            return weighted_choice([("1", 7), ("2", 3)])
+        if self.route_name == "盗术投机流":
+            return "1" if self.player.theft_skill < 12 else "2"
+        if self.route_name == "随心游玩流":
+            if self.player.theft_skill < 8:
+                return "1" if random.random() < 0.45 else "2"
+            if self.player.theft_skill >= 45 and random.random() < 0.04:
+                return "6"
+            if self.player.theft_skill >= 25 and random.random() < 0.12:
+                return "5"
+            if self.player.theft_skill >= 10 and random.random() < 0.35:
+                return random.choice(["3", "4"])
+            return "2"
+        return "0"
+
+    def choose_theft_resolution(self) -> str:
+        if self.route_name == "盗术投机流":
+            if self.player.spirit_stones >= 10:
+                return "1" if random.random() < 0.78 else "2"
+            if self.player.spirit_stones >= 4:
+                return "1" if random.random() < 0.52 else ("3" if random.random() < 0.35 else "2")
+            return "3" if random.random() < 0.52 else "2"
+        if self.route_name == "魔道炼魂流":
+            return weighted_choice([("2", 5), ("3", 4), ("1", 1)])
+        if self.route_name == "随心游玩流":
+            if self.player.spirit_stones >= 8:
+                return weighted_choice([("1", 7), ("2", 2), ("3", 1)])
+            return weighted_choice([("1", 4), ("2", 3), ("3", 2)])
+        return "1" if self.player.spirit_stones >= 6 else "2"
 
     def choose_jade_bottle(self) -> str:
         if self.player.exposure > 60:
@@ -673,10 +752,98 @@ class AutoInput:
             or self.player.karma >= 25
             or self.player.tracking_marks > 0
             or self.player.heishui_risk_event_count > 0
+            or self.player.enemy_count >= 3
+            or self.player.reputation <= -8
         )
 
 
 def choose_route_action(route: Dict[str, object], player: Player) -> str:
+    if str(route["name"]) == "盗术投机流":
+        theft_risk = (
+            player.exposure >= 50
+            or player.karma >= 35
+            or player.enemy_count >= 2
+            or player.reputation <= -6
+            or player.hp < player.max_hp * 0.35
+        )
+        if theft_risk and random.random() < 0.55:
+            return weighted_choice([("legacy_meditate", 48), ("1", 32), ("2", 12), ("8_theft_train", 8)])
+        skill = player.theft_skill
+        if skill < 10:
+            return weighted_choice(
+                [
+                    ("8_theft_train", 70),
+                    ("8_theft_basic", 15),
+                    ("1", 10),
+                    ("2", 3),
+                    ("legacy_meditate", 2),
+                ]
+            )
+        if skill < 25:
+            return weighted_choice(
+                [
+                    ("8_theft_train", 45),
+                    ("8_theft_basic", 10),
+                    ("8_theft_stall", 12),
+                    ("8_theft_intel", 10),
+                    ("1", 12),
+                    ("2", 4),
+                    ("legacy_meditate", 7),
+                ]
+            )
+        if skill < 45:
+            return weighted_choice(
+                [
+                    ("8_theft_train", 30),
+                    ("8_theft_manual", 12),
+                    ("8_theft_intel", 10),
+                    ("8_theft_stall", 8),
+                    ("8_theft_basic", 5),
+                    ("1", 20),
+                    ("2", 5),
+                    ("legacy_meditate", 10),
+                ]
+            )
+        if skill < 65:
+            return weighted_choice(
+                [
+                    ("8_theft_train", 18),
+                    ("8_theft_cultivation", 8),
+                    ("8_theft_manual", 10),
+                    ("8_theft_intel", 8),
+                    ("8_theft_stall", 6),
+                    ("1", 25),
+                    ("2", 7),
+                    ("legacy_meditate", 18),
+                ]
+            )
+        if skill < 80:
+            return weighted_choice(
+                [
+                    ("8_theft_train", 14),
+                    ("8_theft_cultivation", 7),
+                    ("8_theft_manual", 8),
+                    ("8_theft_high", 5),
+                    ("8_theft_intel", 6),
+                    ("1", 26),
+                    ("2", 8),
+                    ("legacy_meditate", 26),
+                ]
+            )
+        high_weights = [
+            ("8_theft_train", 10),
+            ("8_theft_cultivation", 5),
+            ("8_theft_manual", 6),
+            ("8_theft_high", 5),
+            ("8_theft_intel", 5),
+            ("1", 28),
+            ("2", 8),
+            ("legacy_meditate", 33),
+        ]
+        if skill >= 95 and player.stolen_inheritance_count == 0:
+            high_weights.append(("8_theft_high", 1))
+        return weighted_choice(high_weights)
+
     if str(route["name"]) == "随心游玩流":
         high_risk = (
             player.exposure >= 55
@@ -685,6 +852,8 @@ def choose_route_action(route: Dict[str, object], player: Player) -> str:
             or player.karma >= 25
             or player.tracking_marks > 0
             or player.heishui_risk_event_count > 0
+            or player.enemy_count >= 3
+            or player.reputation <= -8
         )
         if high_risk and random.random() < 0.35:
             return "legacy_meditate"
@@ -715,6 +884,8 @@ def risk_score(player: Player) -> int:
         + player.karma
         + player.tracking_marks * 8
         + player.heishui_risk_event_count * 10
+        + player.enemy_count * 6
+        + max(0, -player.reputation) * 2
     )
 
 
@@ -784,6 +955,24 @@ def run_single_game(route: Dict[str, object], index: int) -> Dict[str, object]:
         "furnace_level": furnace_level(player),
         "equipment_count": equipment_count(player),
         "equipment_score": equipment_score(player),
+        "theft_skill": player.theft_skill,
+        "theft_attempts": player.theft_attempts,
+        "theft_successes": player.theft_successes,
+        "theft_failures": player.theft_failures,
+        "theft_compensations": player.theft_compensations,
+        "theft_refusals": player.theft_refusals,
+        "theft_escape_count": player.theft_escape_count,
+        "reputation": player.reputation,
+        "enemy_count": player.enemy_count,
+        "stolen_manual_fragments": player.stolen_manual_fragments,
+        "stolen_cultivation_count": player.stolen_cultivation_count,
+        "stolen_luck_count": player.stolen_luck_count,
+        "stolen_opportunity_count": player.stolen_opportunity_count,
+        "stolen_fate_count": player.stolen_fate_count,
+        "stolen_lifespan_count": player.stolen_lifespan_count,
+        "stolen_inheritance_count": player.stolen_inheritance_count,
+        "theft_exposure_gain": player.theft_exposure_gain,
+        "theft_karma_gain": player.theft_karma_gain,
     }
 
 
@@ -797,6 +986,8 @@ def rate(records: List[Dict[str, object]], key: str) -> float:
 
 def summarize_route(route: Dict[str, object], runs: int) -> Dict[str, float | str | int]:
     records = [run_single_game(route, index) for index in range(1, runs + 1)]
+    total_theft_attempts = sum(int(record["theft_attempts"]) for record in records)
+    total_theft_successes = sum(int(record["theft_successes"]) for record in records)
     return {
         "name": str(route["name"]),
         "runs": runs,
@@ -835,6 +1026,23 @@ def summarize_route(route: Dict[str, object], runs: int) -> Dict[str, float | st
         "avg_furnace_level": average(records, "furnace_level"),
         "avg_equipment_count": average(records, "equipment_count"),
         "avg_equipment_score": average(records, "equipment_score"),
+        "avg_theft_skill": average(records, "theft_skill"),
+        "avg_theft_attempts": average(records, "theft_attempts"),
+        "theft_success_rate": total_theft_successes / total_theft_attempts if total_theft_attempts else 0.0,
+        "avg_theft_compensations": average(records, "theft_compensations"),
+        "avg_theft_refusals": average(records, "theft_refusals"),
+        "avg_theft_escape_count": average(records, "theft_escape_count"),
+        "avg_reputation": average(records, "reputation"),
+        "avg_enemy_count": average(records, "enemy_count"),
+        "avg_stolen_manual_fragments": average(records, "stolen_manual_fragments"),
+        "avg_stolen_cultivation_count": average(records, "stolen_cultivation_count"),
+        "avg_stolen_luck_count": average(records, "stolen_luck_count"),
+        "avg_stolen_opportunity_count": average(records, "stolen_opportunity_count"),
+        "avg_stolen_fate_count": average(records, "stolen_fate_count"),
+        "avg_stolen_lifespan_count": average(records, "stolen_lifespan_count"),
+        "avg_stolen_inheritance_count": average(records, "stolen_inheritance_count"),
+        "avg_theft_exposure_gain": average(records, "theft_exposure_gain"),
+        "avg_theft_karma_gain": average(records, "theft_karma_gain"),
     }
 
 
@@ -881,6 +1089,23 @@ def print_summary(summary: Dict[str, float | str | int]) -> None:
     print(f"平均炼丹炉等级：{summary['avg_furnace_level']:.1f}")
     print(f"平均装备数量：{summary['avg_equipment_count']:.1f}")
     print(f"平均装备评分：{summary['avg_equipment_score']:.1f}")
+    print(f"平均盗术等级：{summary['avg_theft_skill']:.1f}")
+    print(f"平均偷窃次数：{summary['avg_theft_attempts']:.1f}")
+    print(f"偷窃成功率：{pct(float(summary['theft_success_rate']))}")
+    print(f"平均赔偿次数：{summary['avg_theft_compensations']:.1f}")
+    print(f"平均拒赔次数：{summary['avg_theft_refusals']:.1f}")
+    print(f"平均强行脱身次数：{summary['avg_theft_escape_count']:.1f}")
+    print(f"平均旁门声望：{summary['avg_reputation']:.1f}")
+    print(f"平均结仇数量：{summary['avg_enemy_count']:.1f}")
+    print(f"偷功法/残页数量：{summary['avg_stolen_manual_fragments']:.1f}")
+    print(f"偷修为次数：{summary['avg_stolen_cultivation_count']:.1f}")
+    print(f"偷气运次数：{summary['avg_stolen_luck_count']:.1f}")
+    print(f"偷机缘次数：{summary['avg_stolen_opportunity_count']:.1f}")
+    print(f"偷因果次数：{summary['avg_stolen_fate_count']:.1f}")
+    print(f"偷寿元次数：{summary['avg_stolen_lifespan_count']:.1f}")
+    print(f"偷 NPC 传承次数：{summary['avg_stolen_inheritance_count']:.2f}")
+    print(f"盗术导致平均暴露增量：{summary['avg_theft_exposure_gain']:.1f}")
+    print(f"盗术导致平均业力增量：{summary['avg_theft_karma_gain']:.1f}")
     print(f"综合评价：{route_assessment(summary)}")
 
 
@@ -897,6 +1122,33 @@ def route_assessment(summary: Dict[str, float | str | int]) -> str:
     risk_events = float(summary.get("avg_heishui_risk_event_count", 0))
     blindbox_net = float(summary.get("avg_heishui_blindbox_net", 0))
     intel_count = float(summary.get("avg_heishui_intel_purchase_count", 0))
+
+    if name == "盗术投机流":
+        high_tier = (
+            float(summary.get("avg_stolen_luck_count", 0))
+            + float(summary.get("avg_stolen_opportunity_count", 0))
+            + float(summary.get("avg_stolen_fate_count", 0))
+            + float(summary.get("avg_stolen_lifespan_count", 0))
+            + float(summary.get("avg_stolen_inheritance_count", 0))
+        )
+        failure_resolution = (
+            float(summary.get("avg_theft_compensations", 0))
+            + float(summary.get("avg_theft_refusals", 0))
+            + float(summary.get("avg_theft_escape_count", 0))
+        )
+        if top_ten > 0.90:
+            return "盗术投机流过强，需要压低盗术收益或提高风险。"
+        if top_three > 0.20:
+            return "高阶盗术收益过高，前三率偏危险。"
+        if float(summary.get("avg_stolen_cultivation_count", 0)) > 2.0 and high_risk < 0.25:
+            return "偷修为次数较多且平均风险偏低，代价不足。"
+        if high_tier > 0.9:
+            return "偷气运/机缘/因果/寿元/传承触发偏频繁。"
+        if float(summary.get("avg_theft_attempts", 0)) > 2 and failure_resolution < 0.15:
+            return "失败后的赔偿/拒赔/强逃覆盖不足。"
+        if top_ten < 0.30:
+            return "盗术投机流偏弱，爆点不足。"
+        return "盗术收益、失败处理和反噬处于观察区间。"
 
     if name == "随心游玩流":
         if top_ten < 0.25:
@@ -958,6 +1210,19 @@ def evaluate(summaries: List[Dict[str, float | str | int]]) -> List[str]:
         risk_events = float(summary.get("avg_heishui_risk_event_count", 0))
         blindbox_net = float(summary.get("avg_heishui_blindbox_net", 0))
         intel_count = float(summary.get("avg_heishui_intel_purchase_count", 0))
+        theft_attempts = float(summary.get("avg_theft_attempts", 0))
+        theft_resolutions = (
+            float(summary.get("avg_theft_compensations", 0))
+            + float(summary.get("avg_theft_refusals", 0))
+            + float(summary.get("avg_theft_escape_count", 0))
+        )
+        theft_high_tier = (
+            float(summary.get("avg_stolen_luck_count", 0))
+            + float(summary.get("avg_stolen_opportunity_count", 0))
+            + float(summary.get("avg_stolen_fate_count", 0))
+            + float(summary.get("avg_stolen_lifespan_count", 0))
+            + float(summary.get("avg_stolen_inheritance_count", 0))
+        )
 
         if name != "随心游玩流" and top_ten < 0.30:
             notes.append(f"{name}：前十率低于30%，该路线可能过弱。")
@@ -987,6 +1252,17 @@ def evaluate(summaries: List[Dict[str, float | str | int]]) -> List[str]:
             notes.append("黑水投机流：盲盒平均收益为正且风险很低，盲盒期望值过高。")
         if name == "黑水投机流" and intel_count >= 4 and avg_rank <= 6:
             notes.append("黑水投机流：情报购买次数高但名次明显靠前，情报收益过稳。")
+        if name == "盗术投机流":
+            if top_ten > 0.90:
+                notes.append("盗术投机流：前十率超过90%，盗术过强。")
+            if top_three > 0.20:
+                notes.append("盗术投机流：前三率超过20%，高阶盗术收益过高。")
+            if float(summary.get("avg_stolen_cultivation_count", 0)) > 2.0 and high_risk < 0.25:
+                notes.append("盗术投机流：偷修为次数过多且平均风险低，偷修为代价不足。")
+            if theft_high_tier > 0.9:
+                notes.append("盗术投机流：偷气运/机缘/因果/寿元/传承频率过高。")
+            if theft_attempts > 2 and theft_resolutions < 0.15:
+                notes.append("盗术投机流：失败后赔偿/拒赔/强逃几乎不发生，失败事件覆盖不足。")
         if name == "随心游玩流":
             if top_ten < 0.25:
                 notes.append("随心游玩流：普通玩家体验可能过挫败。")

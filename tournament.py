@@ -7,6 +7,7 @@ from typing import Dict, List, Tuple
 
 from cultivation_assets import equipment_bonus, equipment_score, furnace_level, grant_equipment, material_total
 from player import Player
+from theft_system import theft_tournament_adjustments
 
 
 NPC_SCORE_RANGES: List[Tuple[str, int, int]] = [
@@ -58,6 +59,10 @@ def run_tournament(player: Player) -> Dict[str, object]:
     mind_intel_bonus = _intel_bonus(player, "mind")
     trial_intel_bonus = _intel_bonus(player, "trial")
     combat_intel_bonus = _intel_bonus(player, "combat")
+    theft_adjustments = theft_tournament_adjustments(player)
+    theft_mind = int(theft_adjustments.get("mind", 0))
+    theft_trial = int(theft_adjustments.get("trial", 0))
+    theft_combat = int(theft_adjustments.get("combat", 0))
     attack = player.attack + equipment_bonus(player, "attack")
     defense = player.defense + equipment_bonus(player, "defense")
     speed = player.speed + equipment_bonus(player, "speed")
@@ -86,7 +91,8 @@ def run_tournament(player: Player) -> Dict[str, object]:
         - player.demonic_qi // 4
         - player.karma // 4
         - max(0, exposure - 50) // 8
-        + mind_intel_bonus,
+        + mind_intel_bonus
+        + theft_mind,
         25,
     )
     trial_score = _cap(
@@ -103,7 +109,8 @@ def run_tournament(player: Player) -> Dict[str, object]:
         - exposure // 4
         - heart_demon // 8
         - player.karma // 8
-        + trial_intel_bonus,
+        + trial_intel_bonus
+        + theft_trial,
         35,
     )
     talisman_bonus = _talisman_combat_bonus(player)
@@ -121,7 +128,8 @@ def run_tournament(player: Player) -> Dict[str, object]:
         - player.demonic_qi // 3
         - player.karma // 3
         - max(0, exposure - 35) // 6
-        + combat_intel_bonus,
+        + combat_intel_bonus
+        + theft_combat,
         40,
     )
 
@@ -146,6 +154,9 @@ def run_tournament(player: Player) -> Dict[str, object]:
         flags.append("旁支有人")
     if player.intelligence >= 20:
         flags.append("情报先手")
+    for flag in theft_adjustments.get("flags", []):
+        if str(flag) not in flags:
+            flags.append(str(flag))
 
     if top_ten and "魔影伏身" not in flags:
         ending = "前十入册"
@@ -184,6 +195,7 @@ def run_tournament(player: Player) -> Dict[str, object]:
         "leaderboard": leaderboard,
         "talisman_bonus": talisman_bonus,
         "heishui_intel_bonus": mind_intel_bonus + trial_intel_bonus + combat_intel_bonus,
+        "theft_tournament_adjustment": int(theft_adjustments.get("total", 0)),
         "equipment_score": equipment_score(player),
         "alchemy_reserve_bonus": alchemy_reserve_bonus,
         "reward_text": reward_text,
@@ -205,6 +217,8 @@ def format_tournament_result(result: Dict[str, object]) -> str:
         lines.append(f"装备评分：{int(result.get('equipment_score', 0))}")
     if result.get("heishui_intel_bonus", 0):
         lines.append(f"黑水情报修正：{int(result.get('heishui_intel_bonus', 0)):+d}")
+    if result.get("theft_tournament_adjustment", 0):
+        lines.append(f"盗术综合修正：{int(result.get('theft_tournament_adjustment', 0)):+d}")
     lines.append(f"总分：{result['total']}/100")
     lines.append(f"名次：第 {result['rank']} 名")
     lines.append(f"目标：{'达成，进入前十' if result['top_ten'] else '未达成，未入前十'}")

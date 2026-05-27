@@ -30,6 +30,15 @@ from cultivation_assets import (
 from data import ACTION_NAMES, ATTRIBUTE_NAMES, MARKET_GOODS, MARKET_PRICES, MONTHLY_EVENTS, NPCS
 from heishui_market import market_action as heishui_market_action, resolve_monthly_risk_event
 from player import Player
+from theft_system import (
+    THEFT_MENU_ITEMS,
+    THEFT_TYPE_BY_MENU,
+    attempt_theft,
+    resolve_monthly_theft_event,
+    resolve_theft_failure,
+    theft_status_text,
+    train_theft,
+)
 
 
 def action_menu_text() -> str:
@@ -60,8 +69,8 @@ def tutorial_tip(player: Player) -> str:
         return (
             "【族中老人提醒】\n"
             "单靠打坐最为稳妥，却难在家族大比中出头。\n"
-            "若想冲榜，丹药、符箓、情报、灵田、装备皆可助你一程。\n"
-            "只是捷径多伴风险，黑水坊市尤其如此。"
+            "若想冲榜，丹药、符箓、情报、灵田、装备、旁门技艺皆可助你一程。\n"
+            "只是捷径多伴风险，黑水坊市与盗术尤其如此。"
         )
     if player.month == 2 and "tutorial_month_2" not in flags:
         flags.append("tutorial_month_2")
@@ -69,7 +78,7 @@ def tutorial_tip(player: Player) -> str:
         return (
             "【族中老人补充】\n"
             "丹毒、心魔、暴露积得太高，到了大比问心和斗法台都会拖后腿。\n"
-            "魔道与黑水坊市能换来快收益，也更容易留下后患。"
+            "魔道、黑水坊市和盗术能换来快收益，也更容易留下后患。"
         )
     return ""
 
@@ -648,6 +657,7 @@ def preparation_status_text(player: Player) -> str:
             field_status_text(player),
             furnace_status_text(player),
             equipment_status_text(player),
+            theft_status_text(player),
         ]
     )
 
@@ -706,12 +716,39 @@ def _manage_equipment(player: Player) -> str:
     return "你没有更换装备。"
 
 
+def _manage_theft(player: Player) -> str:
+    print("盗术/旁门技艺：")
+    print("1. 修习盗术")
+    for key, label, _ in THEFT_MENU_ITEMS:
+        print(f"{key}. {label}")
+    print("0. 返回")
+    choice = _read_choice("请选择盗术事项：")
+
+    if choice == "1":
+        return train_theft(player)
+    theft_type = THEFT_TYPE_BY_MENU.get(choice)
+    if not theft_type:
+        return "你暂时没有动用盗术。"
+
+    result = attempt_theft(player, theft_type)
+    lines = [str(result["text"])]
+    if result.get("needs_resolution"):
+        print("偷窃败露，你要如何处理？")
+        print("1. 赔偿")
+        print("2. 拒赔")
+        print("3. 强行脱身")
+        response = _read_choice("请选择处理方式：")
+        lines.append(resolve_theft_failure(player, theft_type, response))
+    return "\n".join(lines)
+
+
 def action_preparation(player: Player) -> str:
     print("修炼准备：")
     print("1. 管理灵田")
     print("2. 查看/更换炼丹炉")
     print("3. 查看/更换装备")
-    print("4. 查看当前准备状态")
+    print("4. 盗术/旁门技艺")
+    print("5. 查看当前准备状态")
     print("0. 返回")
     choice = _read_choice("请选择准备事项：")
 
@@ -722,6 +759,8 @@ def action_preparation(player: Player) -> str:
     if choice == "3":
         return _manage_equipment(player)
     if choice == "4":
+        return _manage_theft(player)
+    if choice == "5":
         return preparation_status_text(player)
     return "你暂时没有做额外准备。"
 
@@ -761,6 +800,7 @@ def monthly_event(player: Player) -> str:
     for attr, value in event["effects"].items():
         setattr(player, attr, getattr(player, attr) + int(value))
     heishui_text = resolve_monthly_risk_event(player)
+    theft_text = resolve_monthly_theft_event(player)
     field_text = advance_spirit_fields(player)
     player.clamp()
     effects_text = "，".join(
@@ -773,6 +813,8 @@ def monthly_event(player: Player) -> str:
     ]
     if heishui_text:
         lines.append(heishui_text)
+    if theft_text:
+        lines.append(theft_text)
     if field_text:
         lines.append(field_text)
     lines.append("本月高年份灵草正常出售次数已重置。")
@@ -791,4 +833,8 @@ def risk_summary(player: Player) -> List[str]:
         warnings.append("业力过重，隐藏线结局风险升高。")
     if player.tracking_marks > 0:
         warnings.append("你在黑水坊市留下了追踪痕迹，月末可能招来麻烦。")
+    if player.enemy_count >= 3 or player.reputation <= -8:
+        warnings.append("盗术风声渐紧，结仇和声望损失会拖累大比评价。")
+    if player.theft_skill >= 65 and (player.karma >= 35 or player.exposure >= 60):
+        warnings.append("高阶盗术已触到气运因果，暴露和业力会放大反噬。")
     return warnings
