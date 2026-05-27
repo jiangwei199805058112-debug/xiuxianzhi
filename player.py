@@ -19,6 +19,7 @@ from cultivation_assets import (
     grant_starter_seeds,
 )
 from data import ACTIONS_PER_MONTH, INITIAL_NPC_AFFECTION, NPCS, SPIRIT_ROOTS, TOTAL_ACTIONS
+from growth_system import calculate_breadth, mastery_total
 
 
 MAX_REALM_LEVEL = 9
@@ -85,6 +86,21 @@ class Player:
     righteous_reputation: int = 0
     reputation: int = 0
     enemy_count: int = 0
+    foundation: int = 0
+    cultivation_mastery: int = 0
+    combat_mastery: int = 0
+    alchemy_mastery: int = 0
+    herb_mastery: int = 0
+    spirit_field_mastery: int = 0
+    intel_mastery: int = 0
+    social_mastery: int = 0
+    theft_mastery: int = 0
+    demonic_mastery: int = 0
+    market_mastery: int = 0
+    breakthrough_insight_pending: int = 0
+    breakthrough_count: int = 0
+    unlocked_insights: List[str] = field(default_factory=list)
+    foundation_burst_triggered: bool = False
     theft_skill: int = 0
     theft_exp: int = 0
     theft_attempts: int = 0
@@ -168,6 +184,8 @@ class Player:
 
     def _increase_realm_once(self) -> None:
         self.realm_level += 1
+        self.breakthrough_count += 1
+        self.breakthrough_insight_pending += 1
         self.max_hp += 8
         self.hp = self.max_hp
         self.mp += 5
@@ -217,6 +235,19 @@ class Player:
             "demonic_qi",
             "karma",
             "enemy_count",
+            "foundation",
+            "cultivation_mastery",
+            "combat_mastery",
+            "alchemy_mastery",
+            "herb_mastery",
+            "spirit_field_mastery",
+            "intel_mastery",
+            "social_mastery",
+            "theft_mastery",
+            "demonic_mastery",
+            "market_mastery",
+            "breakthrough_insight_pending",
+            "breakthrough_count",
             "theft_skill",
             "theft_exp",
             "theft_attempts",
@@ -278,6 +309,21 @@ class Player:
         self.righteous_reputation = max(-100, min(self.righteous_reputation, 100))
         self.reputation = max(-100, min(self.reputation, 100))
         self.theft_skill = min(self.theft_skill, 100)
+        self.foundation = min(self.foundation, 160)
+        for attr in (
+            "cultivation_mastery",
+            "combat_mastery",
+            "alchemy_mastery",
+            "herb_mastery",
+            "spirit_field_mastery",
+            "intel_mastery",
+            "social_mastery",
+            "theft_mastery",
+            "demonic_mastery",
+            "market_mastery",
+        ):
+            setattr(self, attr, min(getattr(self, attr), 160))
+        self.unlocked_insights = [str(name) for name in self.unlocked_insights if str(name)]
         self.total_actions = max(0, min(self.total_actions, TOTAL_ACTIONS))
         if self.black_market_password_month != self.month:
             self.has_black_market_password = False
@@ -345,6 +391,12 @@ class Player:
         )
         if not equipment_effect_text:
             equipment_effect_text = "无"
+        mastery_text = (
+            f"修炼{self.cultivation_mastery}｜斗法{self.combat_mastery}｜炼丹{self.alchemy_mastery}｜"
+            f"采药{self.herb_mastery}｜灵植{self.spirit_field_mastery}｜情报{self.intel_mastery}｜"
+            f"人情{self.social_mastery}｜盗术{self.theft_mastery}｜魔道{self.demonic_mastery}｜坊市{self.market_mastery}"
+        )
+        insight_text = "、".join(self.unlocked_insights) if self.unlocked_insights else "无"
         return (
             f"姓名：{self.name}｜年龄：{self.age}\n"
             f"出身：青岭沈家旁支\n"
@@ -357,6 +409,9 @@ class Player:
             f"资源：普通灵草{self.herbs}｜十年份灵草{self.aged_herbs_10}｜三十年份灵草{self.aged_herbs_30}｜灵石{self.spirit_stones}｜丹药{self.pills}｜家族贡献{self.contribution}\n"
             f"经营：灵田{len(self.spirit_fields)}块｜灵田收获{self.spirit_field_harvest_count}次｜丹炉{furnace.get('name', '无专用丹炉')}\n"
             f"装备：持有{equipment_count(self)}件｜评分{equipment_score(self)}｜加成{equipment_effect_text}\n"
+            f"根基：根基{self.foundation}｜博学度{calculate_breadth(self)}｜熟练总和{mastery_total(self)}｜突破{self.breakthrough_count}次｜待选感悟{self.breakthrough_insight_pending}\n"
+            f"熟练：{mastery_text}\n"
+            f"融会：{len(self.unlocked_insights)}项｜{insight_text}｜厚积薄发{'已触发' if self.foundation_burst_triggered else '未触发'}\n"
             f"隐患：暴露度{self.exposure}｜心魔值{self.heart_demon}｜魔气值{self.demonic_qi}｜业力值{self.karma}\n"
             f"名声：正道声望{self.righteous_reputation}｜旁门声望{self.reputation:+d}｜结仇{self.enemy_count}\n"
             f"盗术：等级{self.theft_skill}｜经验{self.theft_exp}｜尝试{self.theft_attempts}｜成功{self.theft_successes}｜失败{self.theft_failures}｜赔偿{self.theft_compensations}｜拒赔{self.theft_refusals}｜强逃{self.theft_escape_count}\n"
@@ -409,6 +464,21 @@ class Player:
             "righteous_reputation": self.righteous_reputation,
             "reputation": self.reputation,
             "enemy_count": self.enemy_count,
+            "foundation": self.foundation,
+            "cultivation_mastery": self.cultivation_mastery,
+            "combat_mastery": self.combat_mastery,
+            "alchemy_mastery": self.alchemy_mastery,
+            "herb_mastery": self.herb_mastery,
+            "spirit_field_mastery": self.spirit_field_mastery,
+            "intel_mastery": self.intel_mastery,
+            "social_mastery": self.social_mastery,
+            "theft_mastery": self.theft_mastery,
+            "demonic_mastery": self.demonic_mastery,
+            "market_mastery": self.market_mastery,
+            "breakthrough_insight_pending": self.breakthrough_insight_pending,
+            "breakthrough_count": self.breakthrough_count,
+            "unlocked_insights": self.unlocked_insights,
+            "foundation_burst_triggered": self.foundation_burst_triggered,
             "theft_skill": self.theft_skill,
             "theft_exp": self.theft_exp,
             "theft_attempts": self.theft_attempts,
@@ -520,6 +590,21 @@ class Player:
             righteous_reputation=_int_from(data, "righteous_reputation", 0),
             reputation=_int_from(data, "reputation", 0),
             enemy_count=_int_from(data, "enemy_count", _int_from(data, "grudges", 0)),
+            foundation=_int_from(data, "foundation", 0),
+            cultivation_mastery=_int_from(data, "cultivation_mastery", 0),
+            combat_mastery=_int_from(data, "combat_mastery", 0),
+            alchemy_mastery=_int_from(data, "alchemy_mastery", 0),
+            herb_mastery=_int_from(data, "herb_mastery", 0),
+            spirit_field_mastery=_int_from(data, "spirit_field_mastery", 0),
+            intel_mastery=_int_from(data, "intel_mastery", 0),
+            social_mastery=_int_from(data, "social_mastery", 0),
+            theft_mastery=_int_from(data, "theft_mastery", 0),
+            demonic_mastery=_int_from(data, "demonic_mastery", 0),
+            market_mastery=_int_from(data, "market_mastery", 0),
+            breakthrough_insight_pending=_int_from(data, "breakthrough_insight_pending", 0),
+            breakthrough_count=_int_from(data, "breakthrough_count", 0),
+            unlocked_insights=list(data.get("unlocked_insights") or []),
+            foundation_burst_triggered=bool(data.get("foundation_burst_triggered", False)),
             theft_skill=_int_from(data, "theft_skill", 0),
             theft_exp=_int_from(data, "theft_exp", 0),
             theft_attempts=_int_from(data, "theft_attempts", 0),

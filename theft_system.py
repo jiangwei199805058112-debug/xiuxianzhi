@@ -6,6 +6,7 @@ import random
 from typing import Any, Dict, List
 
 from cultivation_assets import equipment_bonus, grant_equipment
+from growth_system import gain_mastery, has_insight
 
 
 THEFT_TYPES: Dict[str, Dict[str, object]] = {
@@ -326,7 +327,7 @@ def train_theft(player: Any) -> str:
     player.combat_exp += combat_gain
     player.mp = max(0, player.mp - random.randint(0, 2))
     player.exposure += 1 if random.random() < 0.25 else 0
-    player.clamp()
+    mastery_text = gain_mastery(player, "theft_mastery", 4)
     growth_text = []
     if speed_gain:
         growth_text.append("身法+1")
@@ -338,6 +339,7 @@ def train_theft(player: Any) -> str:
     return (
         f"你练习换指、藏息与走位，盗术经验+{exp_gain}，盗术+{skill_gain}{detail}。"
         "此法毕竟偏门，练得越深越需谨慎。"
+        + (f"\n{mastery_text}" if mastery_text else "")
     )
 
 
@@ -369,6 +371,10 @@ def calculate_theft_success_rate(player: Any, target_type: str, theft_type: str)
         rate -= _get_int(player, "karma") * 0.16
     if cfg.get("tracking_sensitive"):
         rate -= _get_int(player, "tracking_marks") * 4.0
+    if has_insight(player, "妙手无痕"):
+        rate += 4.0
+    if has_insight(player, "窥隙探囊") and theft_type in {"intel", "manual", "cultivation"}:
+        rate += 5.0
     if theft_type == "inheritance" and _get_int(player, "stolen_inheritance_count") > 0:
         rate = 0
     return max(float(low), min(float(high), rate))
@@ -569,26 +575,28 @@ def attempt_theft(player: Any, theft_type: str) -> Dict[str, object]:
     if random.random() * 100 <= rate:
         _success_common(player, theft_type)
         text = _apply_success_effect(player, theft_type)
-        player.clamp()
+        mastery_text = gain_mastery(player, "theft_mastery", 3 if cfg.get("high_tier") else 2)
         return {
             "success": True,
             "needs_resolution": False,
             "rate": rate,
-            "text": f"{cfg['name']}成功（成功率约{rate:.0f}%）。{text}",
+            "text": f"{cfg['name']}成功（成功率约{rate:.0f}%）。{text}" + (f"\n{mastery_text}" if mastery_text else ""),
         }
 
     player.theft_failures += 1
     _gain_theft_exp(player, int(cfg.get("exp_fail", 2)))
     failure_exposure = random.randint(0, 2)
+    if has_insight(player, "妙手无痕"):
+        failure_exposure = max(0, failure_exposure - 1)
     _add_exposure(player, failure_exposure)
     backlash = _apply_failure_backlash(player, theft_type)
     exposure_text = f"败露痕迹：暴露度+{failure_exposure}。" if failure_exposure else "你暂时没留下明显暴露痕迹。"
-    player.clamp()
+    mastery_text = gain_mastery(player, "theft_mastery", 2 if cfg.get("high_tier") else 1)
     return {
         "success": False,
         "needs_resolution": True,
         "rate": rate,
-        "text": f"{cfg['name']}失败（成功率约{rate:.0f}%）。{backlash}{exposure_text}",
+        "text": f"{cfg['name']}失败（成功率约{rate:.0f}%）。{backlash}{exposure_text}" + (f"\n{mastery_text}" if mastery_text else ""),
     }
 
 
@@ -641,6 +649,12 @@ def resolve_theft_failure(player: Any, theft_type: str, choice: str) -> str:
         karma_gain = random.randint(3, 7) + (3 if high_tier else 0)
         tracking_gain = 1 if random.random() < (0.24 if high_tier else 0.10) else 0
         hp_loss = random.randint(2, 8)
+        if has_insight(player, "来去无踪"):
+            exposure_gain = max(2, exposure_gain - 2)
+            karma_gain = max(0, karma_gain - 1)
+            hp_loss = max(0, hp_loss - 2)
+            if tracking_gain and random.random() < 0.35:
+                tracking_gain = 0
         player.reputation -= reputation_loss
         player.enemy_count += enemy_gain
         _add_exposure(player, exposure_gain)
@@ -832,7 +846,7 @@ def theft_status_text(player: Any) -> str:
     )
     return (
         "盗术旁门："
-        f"盗术{_get_int(player, 'theft_skill')}｜经验{_get_int(player, 'theft_exp')}｜"
+        f"盗术{_get_int(player, 'theft_skill')}｜经验{_get_int(player, 'theft_exp')}｜熟练{_get_int(player, 'theft_mastery')}｜"
         f"尝试{attempts}｜成功{successes}（{rate:.0f}%）｜失败{_get_int(player, 'theft_failures')}｜"
         f"赔偿{_get_int(player, 'theft_compensations')}｜拒赔{_get_int(player, 'theft_refusals')}｜"
         f"强逃{_get_int(player, 'theft_escape_count')}｜声望{_get_int(player, 'reputation'):+d}｜"

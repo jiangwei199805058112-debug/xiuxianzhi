@@ -28,6 +28,13 @@ from cultivation_assets import (
     upgrade_spirit_field,
 )
 from data import ACTION_NAMES, ATTRIBUTE_NAMES, MARKET_GOODS, MARKET_PRICES, MONTHLY_EVENTS, NPCS
+from growth_system import (
+    apply_breakthrough_insight,
+    breakthrough_insight_menu_text,
+    gain_mastery,
+    growth_status_text,
+    has_insight,
+)
 from heishui_market import market_action as heishui_market_action, resolve_monthly_risk_event
 from player import Player
 from theft_system import (
@@ -59,6 +66,10 @@ def _read_choice(prompt: str) -> str:
         return input(prompt).strip()
     except EOFError:
         return ""
+
+
+def _append_growth(text: str, growth_text: str) -> str:
+    return f"{text}\n{growth_text}" if growth_text else text
 
 
 def tutorial_tip(player: Player) -> str:
@@ -136,17 +147,26 @@ def action_cultivate(player: Player) -> str:
     if player.pills > 0:
         player.pills -= 1
         gain += _roll(5, 8)
-        player.heart_demon += 1
+        if has_insight(player, "药力归元"):
+            gain += 1 + (1 if random.random() < 0.35 else 0)
+            player.heart_demon += 0 if random.random() < 0.65 else 1
+        else:
+            player.heart_demon += 1
         used_pill = True
+    if has_insight(player, "静水深流"):
+        gain += 1
     player.gain_cultivation_progress(gain)
     if random.random() < 0.35:
         player.dao_heart += 1
-    player.heart_demon += _roll(0, 1)
+    heart_gain = _roll(0, 1)
+    if has_insight(player, "静水深流") and heart_gain and random.random() < 0.55:
+        heart_gain = 0
+    player.heart_demon += heart_gain
     player.exposure += 1 if gain >= 13 else 0
-    player.clamp()
+    growth_text = gain_mastery(player, "cultivation_mastery", 5, foundation_gain=4)
     pill_text = "你服下一枚丹药，药力推着灵气贯通周天。" if used_pill else "你没有丹药辅佐，只靠吐纳打磨根基。"
     realm_text = f"境界突破至{player.realm_name()}。" if player.realm_level > before_realm else ""
-    return f"你打坐修炼一旬。{pill_text}修炼进度提升 {gain}。{realm_text}"
+    return _append_growth(f"你打坐修炼一旬。{pill_text}修炼进度提升 {gain}。{realm_text}", growth_text)
 
 
 def action_spirit_field(player: Player) -> str:
@@ -159,17 +179,19 @@ def action_spirit_field(player: Player) -> str:
 
     if not player.has_jade_bottle:
         player.has_jade_bottle = True
-        player.clamp()
-        return (
+        growth_text = gain_mastery(player, "spirit_field_mastery", 4, foundation_gain=2)
+        return _append_growth(
             f"你第一次照看药田，得普通灵草{herb_gain}，家族贡献+{contribution_gain}。"
-            "收工时，你在旧药渠下捡到一只温润古玉瓶。古玉瓶已获得。"
+            "收工时，你在旧药渠下捡到一只温润古玉瓶。古玉瓶已获得。",
+            growth_text,
         )
 
     bottle_text = _jade_bottle_text(player)
-    player.clamp()
-    return (
+    growth_text = gain_mastery(player, "spirit_field_mastery", 4, foundation_gain=2)
+    return _append_growth(
         f"你照看药田，得普通灵草{herb_gain}，家族贡献+{contribution_gain}。"
-        f"沈若兰对你印象稍好。{bottle_text}"
+        f"沈若兰对你印象稍好。{bottle_text}",
+        growth_text,
     )
 
 
@@ -183,21 +205,29 @@ def action_gather_herbs(player: Player) -> str:
         stone_gain += 1 if random.random() < 0.70 else 0
         player.exposure = max(0, player.exposure - 1)
         intel_text = "你按天机阁情报避开险路，多采了几处隐蔽药丛。"
-    if random.random() < 0.12:
+    if has_insight(player, "山路先知"):
+        herb_gain += 1 if random.random() < 0.45 else 0
+        intel_text += "你凭山路经验提前绕开枯竭药点。"
+    setback_chance = 0.08 if has_insight(player, "山野老手") else 0.12
+    if random.random() < setback_chance:
         herb_gain = max(0, herb_gain - 1)
         player.exposure += 1
-        player.hp -= _roll(1, 3)
+        player.hp -= _roll(0, 2) if has_insight(player, "山野老手") else _roll(1, 3)
         setback_text = "山中药点被人采过，你绕了远路，收获不稳。"
     else:
         setback_text = ""
     player.herbs += herb_gain
     player.spirit_stones += stone_gain
-    player.physique += 1 if random.random() < 0.85 else 0
+    player.physique += 1 if random.random() < 0.55 else 0
     player.luck += 1 if random.random() < 0.12 else 0
     player.exposure += 1
-    player.hp -= _roll(0, 4)
+    hp_loss = _roll(0, 4)
+    if has_insight(player, "山野老手"):
+        hp_loss = max(0, hp_loss - 1)
+    player.hp -= hp_loss
 
-    if random.random() < 0.35:
+    trail_chance = 0.30 if has_insight(player, "山路先知") else 0.35
+    if random.random() < trail_chance:
         player.exposure += 2
         trail_text = "回程时你被巡山族人问了几句，暴露度略升。"
     else:
@@ -216,10 +246,11 @@ def action_gather_herbs(player: Player) -> str:
         if item_name:
             equipment_text = f"返程时你在乱石间捡到一件旧物：{item_name}。"
 
-    player.clamp()
-    return (
+    growth_text = gain_mastery(player, "herb_mastery", 5, foundation_gain=2)
+    return _append_growth(
         f"你入百药山采药，得到普通灵草{herb_gain}，灵石{stone_gain}。"
-        f"{intel_text}{setback_text}{trail_text}{cave_text}{equipment_text}"
+        f"{intel_text}{setback_text}{trail_text}{cave_text}{equipment_text}",
+        growth_text,
     )
 
 
@@ -236,10 +267,11 @@ def action_family_work(player: Player) -> str:
         item_name = grant_equipment(player, "patched_robe")
         if item_name:
             equipment_text = f"一位族中长辈见你做事踏实，顺手赠你{item_name}。"
-    player.clamp()
-    return (
+    growth_text = gain_mastery(player, "social_mastery", 4, foundation_gain=1)
+    return _append_growth(
         f"你接下家族杂务，跑腿、抄册、守夜皆做，家族贡献+{contribution_gain}，灵石+{stone_gain}。"
-        f"{equipment_text}"
+        f"{equipment_text}",
+        growth_text,
     )
 
 
@@ -339,33 +371,48 @@ def action_market(player: Player) -> str:
     choice = _read_choice("请选择：").upper()
 
     if choice == "A":
-        return _buy_market_good(player)
+        return _append_growth(_buy_market_good(player), gain_mastery(player, "market_mastery", 3))
     if choice == "B":
-        return _sell_herbs_market(player)
+        return _append_growth(_sell_herbs_market(player), gain_mastery(player, "market_mastery", 3))
     if choice == "C":
-        if random.random() < 0.75:
+        if random.random() < (0.85 if has_insight(player, "市井老道") else 0.75):
             player.intelligence += 1
             result = "你在坊市茶棚打听行情，情报值+1。"
         else:
             result = "你在坊市茶棚听了半日传闻，却没筛出可用消息。"
-        player.clamp()
-        return result
+        growth_text = " ".join(
+            text
+            for text in [
+                gain_mastery(player, "market_mastery", 3),
+                gain_mastery(player, "intel_mastery", 3 if "情报值+1" in result else 1),
+            ]
+            if text
+        )
+        return _append_growth(result, growth_text)
     if choice == "D":
-        return heishui_market_action(player)
+        return _append_growth(heishui_market_action(player), gain_mastery(player, "market_mastery", 2))
     if choice == "E":
         print(equipment_shop_text())
         selected = _read_choice("请选择购买装备：")
-        return buy_equipment(player, int(selected)) if selected.isdigit() else "你没有购买装备。"
+        result = buy_equipment(player, int(selected)) if selected.isdigit() else "你没有购买装备。"
+        return _append_growth(result, gain_mastery(player, "market_mastery", 3))
     if choice == "F":
-        return "你离开坊市，没有交易。"
+        return _append_growth("你离开坊市，没有交易。", gain_mastery(player, "market_mastery", 2))
 
-    if random.random() < 0.65:
+    if random.random() < (0.75 if has_insight(player, "市井老道") else 0.65):
         player.intelligence += 1
         result = "你没选定交易，只在坊市听了半日行情，情报值+1。"
     else:
         result = "你没选定交易，只听到几句过时行情。"
-    player.clamp()
-    return result
+    growth_text = " ".join(
+        text
+        for text in [
+            gain_mastery(player, "market_mastery", 3),
+            gain_mastery(player, "intel_mastery", 2 if "情报值+1" in result else 1),
+        ]
+        if text
+    )
+    return _append_growth(result, growth_text)
 
 
 def _furnace_fire_text(furnace: Dict[str, object]) -> str:
@@ -419,19 +466,25 @@ def action_refine_pills(player: Player) -> str:
         player.herbs -= 4
         player.spirit_stones -= 2
         fail_chance = max(5, 15 - success_bonus // 2)
+        if has_insight(player, "药理通明"):
+            fail_chance = max(3, fail_chance - 2)
         fail_roll = random.randint(1, 100)
         if fail_roll <= fail_chance:
             heart_gain = max(1, 2 + heart_delta)
             exposure_gain = max(0, 3 + exposure_delta)
+            if has_insight(player, "药理通明"):
+                heart_gain = max(0, heart_gain - 1)
+                exposure_gain = max(0, exposure_gain - 1)
             player.heart_demon += heart_gain
             player.exposure += exposure_gain
             player.hp -= 5
-            player.clamp()
+            growth_text = gain_mastery(player, "alchemy_mastery", 3)
             severe = fail_roll <= max(1, fail_chance // 2)
-            return (
+            return _append_growth(
                 f"{furnace_text}{_furnace_fire_text(furnace)}"
                 f"{_alchemy_failure_text(furnace, severe)}消耗普通灵草4株和灵石2枚，"
-                f"心魔值+{heart_gain}，暴露度+{exposure_gain}，气血-5。"
+                f"心魔值+{heart_gain}，暴露度+{exposure_gain}，气血-5。",
+                growth_text,
             )
         made = _roll(2, 4) + pill_bonus
         heart_gain = max(0, 1 + heart_delta)
@@ -441,30 +494,37 @@ def action_refine_pills(player: Player) -> str:
         player.heart_demon += heart_gain
         player.exposure += exposure_gain
         player.hp -= 2
-        player.clamp()
-        return (
+        growth_text = gain_mastery(player, "alchemy_mastery", 5)
+        return _append_growth(
             f"{furnace_text}{_furnace_fire_text(furnace)}"
             f"{_alchemy_success_text(furnace, made, 4 + pill_bonus, heart_gain, exposure_gain)}"
-            f"消耗普通灵草4株和灵石2枚，得到丹药{made}枚，气血-2。"
+            f"消耗普通灵草4株和灵石2枚，得到丹药{made}枚，气血-2。",
+            growth_text,
         )
 
     if player.aged_herbs_10 >= 1 and player.spirit_stones >= 3:
         player.aged_herbs_10 -= 1
         player.spirit_stones -= 3
         fail_chance = max(4, 10 - success_bonus // 3)
+        if has_insight(player, "药理通明"):
+            fail_chance = max(2, fail_chance - 2)
         fail_roll = random.randint(1, 100)
         if fail_roll <= fail_chance:
             heart_gain = max(1, 3 + heart_delta)
             exposure_gain = max(0, 4 + exposure_delta)
+            if has_insight(player, "药理通明"):
+                heart_gain = max(0, heart_gain - 1)
+                exposure_gain = max(0, exposure_gain - 1)
             player.heart_demon += heart_gain
             player.exposure += exposure_gain
             player.hp -= 7
-            player.clamp()
+            growth_text = gain_mastery(player, "alchemy_mastery", 3)
             severe = fail_roll <= max(1, fail_chance // 2)
-            return (
+            return _append_growth(
                 f"{furnace_text}{_furnace_fire_text(furnace)}"
                 f"{_alchemy_failure_text(furnace, severe)}十年份灵草药力反冲，经脉灼痛，"
-                f"心魔值+{heart_gain}，暴露度+{exposure_gain}，气血-7。"
+                f"心魔值+{heart_gain}，暴露度+{exposure_gain}，气血-7。",
+                growth_text,
             )
         made = _roll(3, 5) + pill_bonus
         heart_gain = max(1, 2 + heart_delta)
@@ -474,30 +534,38 @@ def action_refine_pills(player: Player) -> str:
         player.heart_demon += heart_gain
         player.exposure += exposure_gain
         player.hp -= 3
-        player.clamp()
-        return (
+        growth_text = gain_mastery(player, "alchemy_mastery", 6)
+        return _append_growth(
             f"{furnace_text}{_furnace_fire_text(furnace)}"
             f"{_alchemy_success_text(furnace, made, 5 + pill_bonus, heart_gain, exposure_gain)}"
-            f"你用十年份灵草炼得丹药{made}枚，气血-3。"
+            f"你用十年份灵草炼得丹药{made}枚，气血-3。",
+            growth_text,
         )
 
     if material_total(player) >= 3 and player.spirit_stones >= 1:
-        consumed = consume_alchemy_materials(player, 3)
+        material_cost = 2 if has_insight(player, "药理通明") and random.random() < 0.18 else 3
+        consumed = consume_alchemy_materials(player, material_cost)
         player.spirit_stones -= 1
         fail_chance = max(6, 18 - success_bonus // 2)
+        if has_insight(player, "药理通明"):
+            fail_chance = max(4, fail_chance - 2)
         fail_roll = random.randint(1, 100)
         if fail_roll <= fail_chance:
             heart_gain = max(1, 2 + heart_delta)
             exposure_gain = max(0, 2 + exposure_delta)
+            if has_insight(player, "药理通明"):
+                heart_gain = max(0, heart_gain - 1)
+                exposure_gain = max(0, exposure_gain - 1)
             player.heart_demon += heart_gain
             player.exposure += exposure_gain
             player.hp -= 4
-            player.clamp()
+            growth_text = gain_mastery(player, "alchemy_mastery", 3)
             severe = fail_roll <= max(1, fail_chance // 2)
-            return (
+            return _append_growth(
                 f"{furnace_text}{_furnace_fire_text(furnace)}"
-                f"{_alchemy_failure_text(furnace, severe)}消耗炼丹材料3份和灵石1枚，"
-                f"心魔值+{heart_gain}，暴露度+{exposure_gain}，气血-4。"
+                f"{_alchemy_failure_text(furnace, severe)}消耗炼丹材料{material_cost}份和灵石1枚，"
+                f"心魔值+{heart_gain}，暴露度+{exposure_gain}，气血-4。",
+                growth_text,
             )
         made = _roll(2, 3) + pill_bonus
         heart_gain = max(0, 1 + heart_delta)
@@ -508,17 +576,18 @@ def action_refine_pills(player: Player) -> str:
         player.exposure += exposure_gain
         player.hp -= 1
         consumed_text = "、".join(f"{MATERIAL_NAMES.get(key, key)}x{value}" for key, value in consumed.items())
-        player.clamp()
-        return (
+        growth_text = gain_mastery(player, "alchemy_mastery", 5)
+        return _append_growth(
             f"{furnace_text}{_furnace_fire_text(furnace)}"
             f"{_alchemy_success_text(furnace, made, 3 + pill_bonus, heart_gain, exposure_gain)}"
-            f"你用灵田药材炼成丹药{made}枚。消耗{consumed_text}和灵石1枚，气血-1。"
+            f"你用灵田药材炼成丹药{made}枚。消耗{consumed_text}和灵石1枚，气血-1。",
+            growth_text,
         )
 
     player.contribution += 1
     player.npc_affection["沈若兰"] += 1
-    player.clamp()
-    return f"{furnace_text}材料不足，你改去丹房外围帮忙分拣药材，家族贡献+1，沈若兰好感+1。"
+    growth_text = gain_mastery(player, "alchemy_mastery", 4)
+    return _append_growth(f"{furnace_text}材料不足，你改去丹房外围帮忙分拣药材，家族贡献+1，沈若兰好感+1。", growth_text)
 
 
 def action_visit_npc(player: Player) -> str:
@@ -542,8 +611,11 @@ def action_visit_npc(player: Player) -> str:
     elif npc == "沈墨阳":
         player.intelligence += 2
         player.demonic_qi += 1
-    player.clamp()
-    return f"你寻机结交{npc}，好感提升{affection_gain}。"
+    growth_parts = [gain_mastery(player, "social_mastery", 5, foundation_gain=1)]
+    if npc in {"沈怀安", "沈霜", "沈墨阳"}:
+        growth_parts.append(gain_mastery(player, "intel_mastery", 2))
+    growth_text = " ".join(text for text in growth_parts if text)
+    return _append_growth(f"你寻机结交{npc}，好感提升{affection_gain}。", growth_text)
 
 
 def action_spell_training(player: Player) -> str:
@@ -556,6 +628,9 @@ def action_spell_training(player: Player) -> str:
         attack_gain = _roll(1, 2)
         mp_gain = _roll(1, 3)
         combat_gain = _roll(1, 2)
+    if has_insight(player, "法随心动"):
+        combat_gain += 1 if random.random() < 0.70 else 0
+        mp_gain += 1 if random.random() < 0.45 else 0
     player.attack += attack_gain
     player.mp += mp_gain
     player.combat_exp += combat_gain
@@ -565,9 +640,12 @@ def action_spell_training(player: Player) -> str:
         player.divine_sense += 1
     player.hp -= _roll(1, 4)
     player.heart_demon += 1 if random.random() < (0.50 if fatigued else 0.35) else 0
-    player.clamp()
+    growth_text = gain_mastery(player, "combat_mastery", 5)
     fatigue_text = "勉强练习，疲态已显。" if fatigued else ""
-    return f"你修炼基础法术，{fatigue_text}攻击+{attack_gain}，灵力+{mp_gain}，斗法经验+{combat_gain}，气血略损。"
+    return _append_growth(
+        f"你修炼基础法术，{fatigue_text}攻击+{attack_gain}，灵力+{mp_gain}，斗法经验+{combat_gain}，气血略损。",
+        growth_text,
+    )
 
 
 def action_investigate(player: Player) -> str:
@@ -577,6 +655,9 @@ def action_investigate(player: Player) -> str:
     else:
         gain = _roll(2, 3)
         false_text = ""
+    if gain and has_insight(player, "族中耳目") and random.random() < 0.45:
+        gain += 1
+        false_text += "族中耳目相帮，你多确认了一条细节。"
     player.intelligence += gain
     player.exposure += 1
     if random.random() < 0.35:
@@ -584,8 +665,11 @@ def action_investigate(player: Player) -> str:
     if random.random() < 0.25:
         player.heart_demon += 1
     player.npc_affection["沈霜"] += 1
-    player.clamp()
-    return f"你探查大比签表、试炼药点与对手习惯，情报值+{gain}，暴露度+1。{false_text}沈霜对你的细心略有改观。"
+    growth_text = gain_mastery(player, "intel_mastery", 5)
+    return _append_growth(
+        f"你探查大比签表、试炼药点与对手习惯，情报值+{gain}，暴露度+1。{false_text}沈霜对你的细心略有改观。",
+        growth_text,
+    )
 
 
 def action_soul_banner(player: Player) -> str:
@@ -598,23 +682,34 @@ def action_soul_banner(player: Player) -> str:
     combat_gain = _roll(2, 4)
     attack_gain = _roll(1, 3)
     progress_gain = _roll(4, 8)
+    if has_insight(player, "血战入骨"):
+        combat_gain += 1
+        attack_gain += 1 if random.random() < 0.45 else 0
     player.souls_refined += refine_gain
     player.combat_exp += combat_gain
     player.attack += attack_gain
     player.gain_cultivation_progress(progress_gain)
     player.demonic_qi += _roll(10, 15)
     player.karma += _roll(9, 14)
-    player.heart_demon += _roll(8, 12)
-    player.righteous_reputation -= 4
+    heart_gain = _roll(8, 12)
+    if has_insight(player, "正邪互参"):
+        heart_gain = max(0, heart_gain - 2)
+    player.heart_demon += heart_gain
+    player.righteous_reputation -= 5 if has_insight(player, "血战入骨") else 4
     player.exposure += _roll(8, 12)
     if player.souls_refined >= 3 or random.random() < 0.35:
         player.exposure += _roll(6, 10)
         player.karma += _roll(3, 6)
         player.heart_demon += _roll(3, 6)
-    player.clamp()
-    return (
+    growth_parts = [
+        gain_mastery(player, "demonic_mastery", 5),
+        gain_mastery(player, "combat_mastery", 2 if has_insight(player, "血战入骨") else 1),
+    ]
+    growth_text = " ".join(text for text in growth_parts if text)
+    return _append_growth(
         "你以残破魂幡收拢游魂，只敢炼化最浅的一缕阴气。"
-        f"修炼进度+{progress_gain}，攻击+{attack_gain}，斗法经验+{combat_gain}，炼魂次数+{refine_gain}。"
+        f"修炼进度+{progress_gain}，攻击+{attack_gain}，斗法经验+{combat_gain}，炼魂次数+{refine_gain}。",
+        growth_text,
     )
 
 
@@ -627,10 +722,11 @@ def action_romance(player: Player) -> str:
     player.heart_demon += _roll(0, 2)
     player.karma += 1
     player.exposure += 1
-    player.clamp()
-    return (
+    growth_text = gain_mastery(player, "social_mastery", 3)
+    return _append_growth(
         f"你以情意锁低阶残印辅助言谈，只牵引一丝亲近感。{npc}好感提升{affection_gain}，"
-        "魅力+1，业力+1。"
+        "魅力+1，业力+1。",
+        growth_text,
     )
 
 
@@ -643,8 +739,11 @@ def action_meditate(player: Player) -> str:
     player.exposure -= exposure_drop
     player.dao_heart += 1
     player.righteous_reputation += 1
-    player.clamp()
-    return f"你焚香静坐，压下杂念。心魔值-{heart_drop}，魔气值-{demonic_drop}，暴露度-{exposure_drop}，道心+1。"
+    growth_text = gain_mastery(player, "cultivation_mastery", 2, foundation_gain=4)
+    return _append_growth(
+        f"你焚香静坐，压下杂念。心魔值-{heart_drop}，魔气值-{demonic_drop}，暴露度-{exposure_drop}，道心+1。",
+        growth_text,
+    )
 
 
 def action_status(player: Player) -> str:
@@ -658,6 +757,7 @@ def preparation_status_text(player: Player) -> str:
             furnace_status_text(player),
             equipment_status_text(player),
             theft_status_text(player),
+            growth_status_text(player),
         ]
     )
 
@@ -676,15 +776,15 @@ def _manage_spirit_field(player: Player) -> str:
     if choice == "1":
         return field_status_text(player)
     if choice == "2":
-        return one_click_plant(player)
+        return _append_growth(one_click_plant(player), gain_mastery(player, "spirit_field_mastery", 5, foundation_gain=1))
     if choice == "3":
-        return tend_all_fields(player)
+        return _append_growth(tend_all_fields(player), gain_mastery(player, "spirit_field_mastery", 5, foundation_gain=2))
     if choice == "4":
-        return harvest_all_fields(player)
+        return _append_growth(harvest_all_fields(player), gain_mastery(player, "spirit_field_mastery", 5, foundation_gain=1))
     if choice == "5":
-        return upgrade_spirit_field(player)
+        return _append_growth(upgrade_spirit_field(player), gain_mastery(player, "spirit_field_mastery", 2))
     if choice == "6":
-        return buy_seed_pack(player)
+        return _append_growth(buy_seed_pack(player), gain_mastery(player, "market_mastery", 1))
     return "你暂时没有处理灵田。"
 
 
@@ -692,7 +792,8 @@ def _manage_furnace(player: Player) -> str:
     print(furnace_status_text(player))
     print(furnace_shop_text(player))
     selected = _read_choice("请选择炼丹炉：")
-    return buy_furnace(player, int(selected)) if selected.isdigit() else "你没有更换炼丹炉。"
+    result = buy_furnace(player, int(selected)) if selected.isdigit() else "你没有更换炼丹炉。"
+    return _append_growth(result, gain_mastery(player, "market_mastery", 2))
 
 
 def _manage_equipment(player: Player) -> str:
@@ -708,7 +809,8 @@ def _manage_equipment(player: Player) -> str:
     if choice == "2":
         print(equipment_shop_text())
         selected = _read_choice("请选择购买装备：")
-        return buy_equipment(player, int(selected)) if selected.isdigit() else "你没有购买装备。"
+        result = buy_equipment(player, int(selected)) if selected.isdigit() else "你没有购买装备。"
+        return _append_growth(result, gain_mastery(player, "market_mastery", 2))
     if choice == "3":
         print(equipment_inventory_text(player))
         selected = _read_choice("请选择装备编号：")
@@ -742,13 +844,21 @@ def _manage_theft(player: Player) -> str:
     return "\n".join(lines)
 
 
+def _manage_breakthrough_insight(player: Player) -> str:
+    print(breakthrough_insight_menu_text(player))
+    choice = _read_choice("请选择突破感悟：")
+    setattr(player, "_waive_next_action", True)
+    return apply_breakthrough_insight(player, choice)
+
+
 def action_preparation(player: Player) -> str:
     print("修炼准备：")
     print("1. 管理灵田")
     print("2. 查看/更换炼丹炉")
     print("3. 查看/更换装备")
     print("4. 盗术/旁门技艺")
-    print("5. 查看当前准备状态")
+    print("5. 突破感悟")
+    print("6. 查看当前准备状态")
     print("0. 返回")
     choice = _read_choice("请选择准备事项：")
 
@@ -761,6 +871,8 @@ def action_preparation(player: Player) -> str:
     if choice == "4":
         return _manage_theft(player)
     if choice == "5":
+        return _manage_breakthrough_insight(player)
+    if choice == "6":
         return preparation_status_text(player)
     return "你暂时没有做额外准备。"
 
@@ -788,8 +900,13 @@ def perform_action(player: Player, choice: str) -> str:
     handler = ACTION_HANDLERS.get(choice)
     if handler is None:
         return "无效行动。"
+    setattr(player, "_last_action_waived", False)
     result = handler(player)
-    if choice not in NON_ADVANCING_ACTIONS:
+    waived = bool(getattr(player, "_waive_next_action", False))
+    if waived:
+        setattr(player, "_waive_next_action", False)
+        setattr(player, "_last_action_waived", True)
+    elif choice not in NON_ADVANCING_ACTIONS:
         player.advance_action()
     return result
 

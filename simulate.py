@@ -11,6 +11,7 @@ from typing import Dict, Iterable, List, Tuple
 
 from cultivation_assets import equipment_by_id, equipment_count, equipment_score, furnace_level
 from data import MARKET_GOODS, NPCS, TOTAL_ACTIONS, VERSION
+from growth_system import calculate_breadth, has_insight, mastery_total
 from heishui_market import ensure_market_state, load_config, shop_unlock_reason
 from player import Player, create_player
 from systems import monthly_event, perform_action
@@ -19,6 +20,16 @@ from tournament import run_tournament
 
 DEFAULT_RUNS = 200
 DEFAULT_SEED = 20260527
+TRACKED_INSIGHTS = [
+    "静水深流",
+    "法随心动",
+    "药理通明",
+    "山野老手",
+    "族中耳目",
+    "妙手无痕",
+    "百艺旁通",
+    "万法互证",
+]
 
 ROUTES: List[Dict[str, object]] = [
     {
@@ -120,6 +131,20 @@ ROUTES: List[Dict[str, object]] = [
             ("8_theft_high", 1),
         ],
     },
+    {
+        "name": "厚积薄发流",
+        "weights": [
+            ("1", 24),
+            ("legacy_spell_training", 18),
+            ("2", 12),
+            ("3", 8),
+            ("8_field", 10),
+            ("legacy_investigate", 12),
+            ("5", 8),
+            ("4_normal", 4),
+            ("legacy_meditate", 4),
+        ],
+    },
 ]
 
 
@@ -157,6 +182,8 @@ class AutoInput:
             return self.choose_theft_mode()
         if "请选择处理方式" in prompt:
             return self.choose_theft_resolution()
+        if "请选择突破感悟" in prompt:
+            return self.choose_breakthrough_insight()
         if "请选择炼丹炉" in prompt:
             return self.choose_furnace()
         if "请选择购买装备" in prompt:
@@ -178,6 +205,8 @@ class AutoInput:
         return ""
 
     def choose_preparation_mode(self) -> str:
+        if self.action_token == "8_insight":
+            return "5"
         if self.action_token.startswith("8_theft"):
             return "4"
         if self.action_token == "8_furnace":
@@ -199,7 +228,37 @@ class AutoInput:
             return "1"
         if self.route_name == "随心游玩流" and random.random() < 0.55:
             return "1"
-        return "5"
+        return "6"
+
+    def choose_breakthrough_insight(self) -> str:
+        if self.route_name == "厚积薄发流":
+            if self.player.foundation < 50:
+                return "1"
+            needs = [
+                ("combat_mastery", "3"),
+                ("spirit_field_mastery", "6"),
+                ("intel_mastery", "7"),
+                ("social_mastery", "8"),
+                ("alchemy_mastery", "4"),
+                ("herb_mastery", "5"),
+                ("cultivation_mastery", "2"),
+            ]
+            needs.sort(key=lambda item: getattr(self.player, item[0]))
+            for attr, choice in needs:
+                if getattr(self.player, attr) < 26:
+                    return choice
+            return "1"
+        if self.route_name == "盗术投机流":
+            return "9" if self.player.theft_skill < 75 else weighted_choice([("9", 5), ("7", 2), ("3", 2), ("1", 1)])
+        if self.route_name == "魔道炼魂流":
+            return weighted_choice([("10", 5), ("3", 3), ("1", 2)])
+        if self.route_name == "古玉瓶炼丹流":
+            return weighted_choice([("4", 5), ("6", 3), ("2", 2)])
+        if self.route_name == "均衡流":
+            return weighted_choice([("1", 3), ("2", 2), ("3", 2), ("7", 2), ("8", 1)])
+        if self.route_name == "随心游玩流":
+            return weighted_choice([("1", 3), ("2", 2), ("3", 2), ("4", 1), ("7", 1), ("9", 1)])
+        return weighted_choice([("1", 4), ("2", 3), ("3", 2), ("7", 1)])
 
     def choose_field_preparation_mode(self) -> str:
         fields = self.player.spirit_fields
@@ -384,6 +443,8 @@ class AutoInput:
             if aged_total > 0 and (self.player.spirit_stones < 16 or aged_total > 6):
                 return "B"
             return "A" if self.choose_market_good() != "0" else "C"
+        if self.route_name == "厚积薄发流":
+            return "F" if random.random() < 0.70 else "C"
         if self.route_name in {"坊市符箓流", "均衡流"}:
             return "A" if self.choose_market_good() != "0" else "C"
         return "C"
@@ -759,6 +820,29 @@ class AutoInput:
 
 
 def choose_route_action(route: Dict[str, object], player: Player) -> str:
+    if player.breakthrough_insight_pending > 0:
+        return "8_insight"
+
+    if str(route["name"]) == "厚积薄发流":
+        if player.foundation < 82 and random.random() < 0.32:
+            return weighted_choice([("5", 35), ("8_field", 30), ("legacy_meditate", 20), ("1", 15)])
+        needs = [
+            ("combat_mastery", "legacy_spell_training", 30),
+            ("herb_mastery", "2", 30),
+            ("intel_mastery", "legacy_investigate", 30),
+            ("spirit_field_mastery", "8_field", 28),
+            ("social_mastery", "5", 28),
+            ("alchemy_mastery", "3", 26),
+            ("market_mastery", "4_normal", 20),
+            ("cultivation_mastery", "legacy_meditate", 42),
+        ]
+        low_actions = [(action, threshold - getattr(player, attr)) for attr, action, threshold in needs if getattr(player, attr) < threshold]
+        if low_actions and random.random() < 0.88:
+            low_actions.sort(key=lambda item: item[1], reverse=True)
+            return weighted_choice([(action, max(5, gap)) for action, gap in low_actions[:5]])
+        if player.foundation < 88 and random.random() < 0.34:
+            return weighted_choice([("5", 35), ("8_field", 30), ("legacy_meditate", 20), ("1", 15)])
+
     if str(route["name"]) == "盗术投机流":
         theft_risk = (
             player.exposure >= 50
@@ -903,7 +987,7 @@ def run_single_game(route: Dict[str, object], index: int) -> Dict[str, object]:
             with redirect_stdout(io.StringIO()):
                 before = player.total_actions
                 perform_action(player, action)
-                if player.total_actions == before:
+                if player.total_actions == before and not bool(getattr(player, "_last_action_waived", False)):
                     player.advance_action()
                 if player.total_actions % 3 == 0 and not player.finished:
                     monthly_event(player)
@@ -958,6 +1042,13 @@ def run_single_game(route: Dict[str, object], index: int) -> Dict[str, object]:
         "furnace_level": furnace_level(player),
         "equipment_count": equipment_count(player),
         "equipment_score": equipment_score(player),
+        "foundation": player.foundation,
+        "breadth": calculate_breadth(player),
+        "mastery_total": mastery_total(player),
+        "unlocked_insight_count": len(player.unlocked_insights),
+        "foundation_burst_triggered": player.foundation_burst_triggered,
+        "breakthrough_insight_choices": max(0, player.breakthrough_count - player.breakthrough_insight_pending),
+        **{f"insight_{name}": has_insight(player, name) for name in TRACKED_INSIGHTS},
         "theft_skill": player.theft_skill,
         "theft_attempts": player.theft_attempts,
         "theft_successes": player.theft_successes,
@@ -1033,6 +1124,13 @@ def summarize_route(route: Dict[str, object], runs: int) -> Dict[str, float | st
         "avg_furnace_level": average(records, "furnace_level"),
         "avg_equipment_count": average(records, "equipment_count"),
         "avg_equipment_score": average(records, "equipment_score"),
+        "avg_foundation": average(records, "foundation"),
+        "avg_breadth": average(records, "breadth"),
+        "avg_mastery_total": average(records, "mastery_total"),
+        "avg_unlocked_insight_count": average(records, "unlocked_insight_count"),
+        "foundation_burst_rate": rate(records, "foundation_burst_triggered"),
+        "avg_breakthrough_insight_choices": average(records, "breakthrough_insight_choices"),
+        **{f"rate_{name}": rate(records, f"insight_{name}") for name in TRACKED_INSIGHTS},
         "avg_theft_skill": average(records, "theft_skill"),
         "avg_theft_attempts": average(records, "theft_attempts"),
         "theft_success_rate": total_theft_successes / total_theft_attempts if total_theft_attempts else 0.0,
@@ -1100,6 +1198,20 @@ def print_summary(summary: Dict[str, float | str | int]) -> None:
     print(f"平均炼丹炉等级：{summary['avg_furnace_level']:.1f}")
     print(f"平均装备数量：{summary['avg_equipment_count']:.1f}")
     print(f"平均装备评分：{summary['avg_equipment_score']:.1f}")
+    print(f"平均根基：{summary['avg_foundation']:.1f}")
+    print(f"平均博学度：{summary['avg_breadth']:.1f}")
+    print(f"平均熟练度总和：{summary['avg_mastery_total']:.1f}")
+    print(f"平均解锁融会状态数量：{summary['avg_unlocked_insight_count']:.1f}")
+    print(f"静水深流触发率：{pct(float(summary['rate_静水深流']))}")
+    print(f"法随心动触发率：{pct(float(summary['rate_法随心动']))}")
+    print(f"药理通明触发率：{pct(float(summary['rate_药理通明']))}")
+    print(f"山野老手触发率：{pct(float(summary['rate_山野老手']))}")
+    print(f"族中耳目触发率：{pct(float(summary['rate_族中耳目']))}")
+    print(f"妙手无痕触发率：{pct(float(summary['rate_妙手无痕']))}")
+    print(f"百艺旁通触发率：{pct(float(summary['rate_百艺旁通']))}")
+    print(f"万法互证触发率：{pct(float(summary['rate_万法互证']))}")
+    print(f"厚积薄发触发率：{pct(float(summary['foundation_burst_rate']))}")
+    print(f"平均突破感悟选择次数：{summary['avg_breakthrough_insight_choices']:.1f}")
     print(f"平均盗术等级：{summary['avg_theft_skill']:.1f}")
     print(f"平均偷窃次数：{summary['avg_theft_attempts']:.1f}")
     print(f"偷窃成功率：{pct(float(summary['theft_success_rate']))}")
@@ -1136,6 +1248,23 @@ def route_assessment(summary: Dict[str, float | str | int]) -> str:
     risk_events = float(summary.get("avg_heishui_risk_event_count", 0))
     blindbox_net = float(summary.get("avg_heishui_blindbox_net", 0))
     intel_count = float(summary.get("avg_heishui_intel_purchase_count", 0))
+
+    if name == "厚积薄发流":
+        burst_rate = float(summary.get("foundation_burst_rate", 0))
+        wanfa_rate = float(summary.get("rate_万法互证", 0))
+        if top_ten < 0.35:
+            return "慢热路线过弱，根基和多门熟练度未能转化为足够大比竞争力。"
+        if top_ten > 0.85:
+            return "综合路线过强，需要压低融会或厚积薄发收益。"
+        if top_three > 0.15:
+            return "后期爆发过强，前三率偏高。"
+        if wanfa_rate > 0.50:
+            return "万法互证触发偏多，博学门槛可能过低。"
+        if burst_rate < 0.10:
+            return "厚积薄发触发偏少，条件可能过苛刻。"
+        if burst_rate > 0.70:
+            return "厚积薄发触发过于常见，综合路线缺少稀缺性。"
+        return "根基、博学和厚积薄发处于观察区间。"
 
     if name == "盗术投机流":
         high_tier = float(summary.get("avg_theft_high_tier_successes", 0))
@@ -1229,6 +1358,9 @@ def evaluate(summaries: List[Dict[str, float | str | int]]) -> List[str]:
             float(summary.get("avg_theft_high_tier_successes", 0))
         )
         theft_high_tier_attempts = float(summary.get("avg_theft_high_tier_attempts", 0))
+        burst_rate = float(summary.get("foundation_burst_rate", 0))
+        wanfa_rate = float(summary.get("rate_万法互证", 0))
+        avg_breadth = float(summary.get("avg_breadth", 0))
 
         if name != "随心游玩流" and top_ten < 0.30:
             notes.append(f"{name}：前十率低于30%，该路线可能过弱。")
@@ -1269,6 +1401,19 @@ def evaluate(summaries: List[Dict[str, float | str | int]]) -> List[str]:
                 notes.append("盗术投机流：偷气运/机缘/因果/寿元/传承频率过高。")
             if theft_attempts > 2 and theft_resolutions < 0.15:
                 notes.append("盗术投机流：失败后赔偿/拒赔/强逃几乎不发生，失败事件覆盖不足。")
+        if name == "厚积薄发流":
+            if top_ten < 0.35:
+                notes.append("厚积薄发流：前十率低于35%，慢热路线过弱。")
+            if top_ten > 0.85:
+                notes.append("厚积薄发流：前十率高于85%，综合路线过强。")
+            if top_three > 0.15:
+                notes.append("厚积薄发流：前三率高于15%，后期爆发过强。")
+            if wanfa_rate > 0.50:
+                notes.append("厚积薄发流：万法互证触发率超过50%，博学门槛过低。")
+            if burst_rate < 0.10:
+                notes.append("厚积薄发流：厚积薄发触发率低于10%，条件过苛刻。")
+            if burst_rate > 0.70:
+                notes.append("厚积薄发流：厚积薄发触发率高于70%，触发过于常见。")
         if name == "随心游玩流":
             if top_ten < 0.25:
                 notes.append("随心游玩流：普通玩家体验可能过挫败。")
@@ -1280,6 +1425,11 @@ def evaluate(summaries: List[Dict[str, float | str | int]]) -> List[str]:
                 notes.append("随心游玩流：黑水坊市对普通玩家惩罚过重。")
             if risk_events < 0.05:
                 notes.append("随心游玩流：随机玩家与黑水内容接触不足。")
+
+    if all(float(summary.get("avg_breadth", 0)) >= 6 for summary in summaries) and all(
+        float(summary["top_ten_rate"]) > 0.75 for summary in summaries
+    ):
+        notes.append("平均博学度普遍偏高且所有路线都偏强，博学加成可能过强。")
 
     if not notes:
         notes.append("未发现明显红线。")

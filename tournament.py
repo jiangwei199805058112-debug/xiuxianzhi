@@ -6,6 +6,7 @@ import random
 from typing import Dict, List, Tuple
 
 from cultivation_assets import equipment_bonus, equipment_score, furnace_level, grant_equipment, material_total
+from growth_system import calculate_breadth, foundation_burst_bonus, growth_tournament_adjustments
 from player import Player
 from theft_system import theft_tournament_adjustments
 
@@ -63,6 +64,14 @@ def run_tournament(player: Player) -> Dict[str, object]:
     theft_mind = int(theft_adjustments.get("mind", 0))
     theft_trial = int(theft_adjustments.get("trial", 0))
     theft_combat = int(theft_adjustments.get("combat", 0))
+    growth_adjustments = growth_tournament_adjustments(player)
+    growth_mind = int(growth_adjustments.get("mind", 0))
+    growth_trial = int(growth_adjustments.get("trial", 0))
+    growth_combat = int(growth_adjustments.get("combat", 0))
+    burst = foundation_burst_bonus(player)
+    burst_mind = int(burst.get("mind", 0))
+    burst_trial = int(burst.get("trial", 0))
+    burst_combat = int(burst.get("combat", 0))
     attack = player.attack + equipment_bonus(player, "attack")
     defense = player.defense + equipment_bonus(player, "defense")
     speed = player.speed + equipment_bonus(player, "speed")
@@ -92,7 +101,9 @@ def run_tournament(player: Player) -> Dict[str, object]:
         - player.karma // 4
         - max(0, exposure - 50) // 8
         + mind_intel_bonus
-        + theft_mind,
+        + theft_mind
+        + growth_mind
+        + burst_mind,
         25,
     )
     trial_score = _cap(
@@ -110,7 +121,9 @@ def run_tournament(player: Player) -> Dict[str, object]:
         - heart_demon // 8
         - player.karma // 8
         + trial_intel_bonus
-        + theft_trial,
+        + theft_trial
+        + growth_trial
+        + burst_trial,
         35,
     )
     talisman_bonus = _talisman_combat_bonus(player)
@@ -129,7 +142,9 @@ def run_tournament(player: Player) -> Dict[str, object]:
         - player.karma // 3
         - max(0, exposure - 35) // 6
         + combat_intel_bonus
-        + theft_combat,
+        + theft_combat
+        + growth_combat
+        + burst_combat,
         40,
     )
 
@@ -197,6 +212,13 @@ def run_tournament(player: Player) -> Dict[str, object]:
         "heishui_intel_bonus": mind_intel_bonus + trial_intel_bonus + combat_intel_bonus,
         "theft_tournament_adjustment": int(theft_adjustments.get("total", 0)),
         "theft_tournament_notes": list(theft_adjustments.get("notes", [])),
+        "growth_tournament_adjustment": int(growth_adjustments.get("total", 0)),
+        "growth_tournament_notes": list(growth_adjustments.get("notes", [])),
+        "foundation_burst_bonus": int(burst.get("total", 0)),
+        "foundation_burst_triggered": bool(burst.get("triggered", False)),
+        "foundation_burst_text": str(burst.get("text", "")),
+        "foundation": player.foundation,
+        "breadth": calculate_breadth(player),
         "equipment_score": equipment_score(player),
         "alchemy_reserve_bonus": alchemy_reserve_bonus,
         "reward_text": reward_text,
@@ -220,10 +242,22 @@ def format_tournament_result(result: Dict[str, object]) -> str:
         lines.append(f"黑水情报修正：{int(result.get('heishui_intel_bonus', 0)):+d}")
     if result.get("theft_tournament_adjustment", 0):
         lines.append(f"盗术综合修正：{int(result.get('theft_tournament_adjustment', 0)):+d}")
+    if result.get("growth_tournament_adjustment", 0):
+        lines.append(f"根基融会修正：{int(result.get('growth_tournament_adjustment', 0)):+d}")
+    if result.get("foundation_burst_bonus", 0):
+        lines.append(f"厚积薄发修正：+{int(result.get('foundation_burst_bonus', 0))}")
+        burst_text = str(result.get("foundation_burst_text", ""))
+        if burst_text:
+            lines.append(burst_text)
     theft_notes = result.get("theft_tournament_notes", [])
     if isinstance(theft_notes, list) and theft_notes:
         lines.append("盗术评价：")
         for note in theft_notes:
+            lines.append(f"- {note}")
+    growth_notes = result.get("growth_tournament_notes", [])
+    if isinstance(growth_notes, list) and growth_notes:
+        lines.append("根基融会：")
+        for note in growth_notes:
             lines.append(f"- {note}")
     lines.append(f"总分：{result['total']}/100")
     lines.append(f"名次：第 {result['rank']} 名")
