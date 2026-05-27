@@ -169,3 +169,5 @@ python simulate.py
 `docs/canon/09_chapter1_route_event_chains.md` 是第一章各玩法路线的 12 个月事件链明细文档，当前包含盗术灰道流与炼丹丹房流。后续第一章路线事件开发应先参考 `docs/canon/00_content_master.md`、`docs/canon/06_npc_master.md`、`docs/canon/07_chapter1_main_arc.md`，再参考该文件。
 
 `docs/canon/09_chapter1_route_event_chains.md` 已补充灵田经营流与黑水投机流的 12 个月事件链。当前该文档包含盗术灰道流、炼丹丹房流、灵田经营流、黑水投机流，以及相关路线交叉事件。
+
+`docs/canon/09_chapter1_route_event_chains.md` 已补充正修打坐流与魔道边缘流的 12 个月事件链。当前该文档包含盗术灰道流、炼丹丹房流、灵田经营流、黑水投机流、正修打坐流、魔道边缘流，以及相关路线交叉事件。
