@@ -163,3 +163,5 @@ python simulate.py
 `docs/design/romance_relationship_system.md` 是成人情缘、双修、亲密关系后果与情缘事件池的设计文档。后续情缘系统开发时应先参考 `docs/canon/00_content_master.md`，再参考该文件。
 
 `docs/canon/06_npc_master.md` 是 NPC 主数据、人物定位、关系变量、阵营反应、Fallback 备用接口、盗术暴露规则、魔道污染分阶与旧设定废弃声明的统一文档。后续 NPC、事件、剧情和系统开发应先参考 `docs/canon/00_content_master.md`，再参考 `docs/canon/06_npc_master.md`，成人情缘相关内容还需参考 `docs/design/romance_relationship_system.md`。
+
+`docs/canon/07_chapter1_main_arc.md` 是第一章《旁支入道》的主线事件总表，包含事件系统规则、月度行动点、信息暴露度、章节安全网、12个月主线、大比对手、结局门槛与第二章入口。后续第一章事件、剧情、NPC互动和系统开发应先参考 `docs/canon/00_content_master.md`，再参考 `docs/canon/06_npc_master.md` 与 `docs/canon/07_chapter1_main_arc.md`。成人情缘相关内容还需参考 `docs/design/romance_relationship_system.md`。
