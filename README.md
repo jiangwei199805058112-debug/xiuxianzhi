@@ -165,3 +165,5 @@ python simulate.py
 `docs/canon/06_npc_master.md` 是 NPC 主数据、人物定位、关系变量、阵营反应、Fallback 备用接口、盗术暴露规则、魔道污染分阶与旧设定废弃声明的统一文档。后续 NPC、事件、剧情和系统开发应先参考 `docs/canon/00_content_master.md`，再参考 `docs/canon/06_npc_master.md`，成人情缘相关内容还需参考 `docs/design/romance_relationship_system.md`。
 
 `docs/canon/07_chapter1_main_arc.md` 是第一章《旁支入道》的主线事件总表，包含事件系统规则、月度行动点、信息暴露度、章节安全网、12个月主线、大比对手、结局门槛与第二章入口。后续第一章事件、剧情、NPC互动和系统开发应先参考 `docs/canon/00_content_master.md`，再参考 `docs/canon/06_npc_master.md` 与 `docs/canon/07_chapter1_main_arc.md`。成人情缘相关内容还需参考 `docs/design/romance_relationship_system.md`。
+
+`docs/canon/09_chapter1_route_event_chains.md` 是第一章各玩法路线的 12 个月事件链明细文档，当前包含盗术灰道流与炼丹丹房流。后续第一章路线事件开发应先参考 `docs/canon/00_content_master.md`、`docs/canon/06_npc_master.md`、`docs/canon/07_chapter1_main_arc.md`，再参考该文件。
