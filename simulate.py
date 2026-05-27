@@ -14,6 +14,7 @@ from data import MARKET_GOODS, NPCS, TOTAL_ACTIONS, VERSION
 from heishui_market import ensure_market_state, load_config, shop_unlock_reason
 from player import Player, create_player
 from systems import monthly_event, perform_action
+from theft_system import THEFT_NEGATIVE_FLAGS
 from tournament import run_tournament
 
 DEFAULT_RUNS = 200
@@ -910,6 +911,7 @@ def run_single_game(route: Dict[str, object], index: int) -> Dict[str, object]:
             builtins.input = old_input
 
     result = run_tournament(player)
+    result_flags = {str(flag) for flag in result["flags"]}
     return {
         "rank": int(result["rank"]),
         "top_ten": bool(result["top_ten"]),
@@ -931,8 +933,9 @@ def run_single_game(route: Dict[str, object], index: int) -> Dict[str, object]:
         "risk_score": risk_score(player),
         "has_jade_bottle": player.has_jade_bottle,
         "has_soul_banner": player.has_soul_banner,
-        "magic_flag": "魔影伏身" in result["flags"],
-        "jade_flag": "玉瓶生疑" in result["flags"],
+        "magic_flag": "魔影伏身" in result_flags,
+        "jade_flag": "玉瓶生疑" in result_flags,
+        "theft_negative_flag": bool(result_flags & THEFT_NEGATIVE_FLAGS),
         "high_risk": (
             player.exposure >= 70
             or player.heart_demon >= 60
@@ -940,8 +943,8 @@ def run_single_game(route: Dict[str, object], index: int) -> Dict[str, object]:
             or player.karma >= 35
             or player.tracking_marks >= 2
             or player.heishui_risk_event_count >= 2
-            or "魔影伏身" in result["flags"]
-            or "玉瓶生疑" in result["flags"]
+            or "魔影伏身" in result_flags
+            or "玉瓶生疑" in result_flags
         ),
         "heishui_spent": player.heishui_market_spent,
         "heishui_purchase_count": player.heishui_purchase_count,
@@ -971,6 +974,9 @@ def run_single_game(route: Dict[str, object], index: int) -> Dict[str, object]:
         "stolen_fate_count": player.stolen_fate_count,
         "stolen_lifespan_count": player.stolen_lifespan_count,
         "stolen_inheritance_count": player.stolen_inheritance_count,
+        "theft_high_tier_attempts": player.theft_high_tier_attempts,
+        "theft_high_tier_successes": player.theft_high_tier_successes,
+        "theft_monthly_event_count": player.theft_monthly_event_count,
         "theft_exposure_gain": player.theft_exposure_gain,
         "theft_karma_gain": player.theft_karma_gain,
     }
@@ -1013,6 +1019,7 @@ def summarize_route(route: Dict[str, object], runs: int) -> Dict[str, float | st
         "soul_banner_rate": rate(records, "has_soul_banner"),
         "magic_flag_rate": rate(records, "magic_flag"),
         "jade_flag_rate": rate(records, "jade_flag"),
+        "theft_negative_flag_rate": rate(records, "theft_negative_flag"),
         "high_risk_rate": rate(records, "high_risk"),
         "avg_heishui_spent": average(records, "heishui_spent"),
         "avg_heishui_purchase_count": average(records, "heishui_purchase_count"),
@@ -1041,6 +1048,9 @@ def summarize_route(route: Dict[str, object], runs: int) -> Dict[str, float | st
         "avg_stolen_fate_count": average(records, "stolen_fate_count"),
         "avg_stolen_lifespan_count": average(records, "stolen_lifespan_count"),
         "avg_stolen_inheritance_count": average(records, "stolen_inheritance_count"),
+        "avg_theft_high_tier_attempts": average(records, "theft_high_tier_attempts"),
+        "avg_theft_high_tier_successes": average(records, "theft_high_tier_successes"),
+        "avg_theft_monthly_event_count": average(records, "theft_monthly_event_count"),
         "avg_theft_exposure_gain": average(records, "theft_exposure_gain"),
         "avg_theft_karma_gain": average(records, "theft_karma_gain"),
     }
@@ -1076,6 +1086,7 @@ def print_summary(summary: Dict[str, float | str | int]) -> None:
     print(f"残破魂幡获得率：{pct(float(summary['soul_banner_rate']))}")
     print(f"魔影伏身结局标记率：{pct(float(summary['magic_flag_rate']))}")
     print(f"玉瓶生疑结局标记率：{pct(float(summary['jade_flag_rate']))}")
+    print(f"盗术大比负面标记率：{pct(float(summary['theft_negative_flag_rate']))}")
     print(f"高风险局率：{pct(float(summary['high_risk_rate']))}")
     print(f"平均黑水坊市消费：{summary['avg_heishui_spent']:.1f}")
     print(f"平均黑水购买次数：{summary['avg_heishui_purchase_count']:.1f}")
@@ -1104,6 +1115,9 @@ def print_summary(summary: Dict[str, float | str | int]) -> None:
     print(f"偷因果次数：{summary['avg_stolen_fate_count']:.1f}")
     print(f"偷寿元次数：{summary['avg_stolen_lifespan_count']:.1f}")
     print(f"偷 NPC 传承次数：{summary['avg_stolen_inheritance_count']:.2f}")
+    print(f"高阶盗术触发次数：{summary['avg_theft_high_tier_attempts']:.1f}")
+    print(f"高阶盗术成功次数：{summary['avg_theft_high_tier_successes']:.1f}")
+    print(f"月末盗术反噬次数：{summary['avg_theft_monthly_event_count']:.1f}")
     print(f"盗术导致平均暴露增量：{summary['avg_theft_exposure_gain']:.1f}")
     print(f"盗术导致平均业力增量：{summary['avg_theft_karma_gain']:.1f}")
     print(f"综合评价：{route_assessment(summary)}")
@@ -1124,13 +1138,8 @@ def route_assessment(summary: Dict[str, float | str | int]) -> str:
     intel_count = float(summary.get("avg_heishui_intel_purchase_count", 0))
 
     if name == "盗术投机流":
-        high_tier = (
-            float(summary.get("avg_stolen_luck_count", 0))
-            + float(summary.get("avg_stolen_opportunity_count", 0))
-            + float(summary.get("avg_stolen_fate_count", 0))
-            + float(summary.get("avg_stolen_lifespan_count", 0))
-            + float(summary.get("avg_stolen_inheritance_count", 0))
-        )
+        high_tier = float(summary.get("avg_theft_high_tier_successes", 0))
+        high_tier_attempts = float(summary.get("avg_theft_high_tier_attempts", 0))
         failure_resolution = (
             float(summary.get("avg_theft_compensations", 0))
             + float(summary.get("avg_theft_refusals", 0))
@@ -1142,7 +1151,7 @@ def route_assessment(summary: Dict[str, float | str | int]) -> str:
             return "高阶盗术收益过高，前三率偏危险。"
         if float(summary.get("avg_stolen_cultivation_count", 0)) > 2.0 and high_risk < 0.25:
             return "偷修为次数较多且平均风险偏低，代价不足。"
-        if high_tier > 0.9:
+        if high_tier > 0.9 or high_tier_attempts > 2.2:
             return "偷气运/机缘/因果/寿元/传承触发偏频繁。"
         if float(summary.get("avg_theft_attempts", 0)) > 2 and failure_resolution < 0.15:
             return "失败后的赔偿/拒赔/强逃覆盖不足。"
@@ -1217,12 +1226,9 @@ def evaluate(summaries: List[Dict[str, float | str | int]]) -> List[str]:
             + float(summary.get("avg_theft_escape_count", 0))
         )
         theft_high_tier = (
-            float(summary.get("avg_stolen_luck_count", 0))
-            + float(summary.get("avg_stolen_opportunity_count", 0))
-            + float(summary.get("avg_stolen_fate_count", 0))
-            + float(summary.get("avg_stolen_lifespan_count", 0))
-            + float(summary.get("avg_stolen_inheritance_count", 0))
+            float(summary.get("avg_theft_high_tier_successes", 0))
         )
+        theft_high_tier_attempts = float(summary.get("avg_theft_high_tier_attempts", 0))
 
         if name != "随心游玩流" and top_ten < 0.30:
             notes.append(f"{name}：前十率低于30%，该路线可能过弱。")
@@ -1259,7 +1265,7 @@ def evaluate(summaries: List[Dict[str, float | str | int]]) -> List[str]:
                 notes.append("盗术投机流：前三率超过20%，高阶盗术收益过高。")
             if float(summary.get("avg_stolen_cultivation_count", 0)) > 2.0 and high_risk < 0.25:
                 notes.append("盗术投机流：偷修为次数过多且平均风险低，偷修为代价不足。")
-            if theft_high_tier > 0.9:
+            if theft_high_tier > 0.9 or theft_high_tier_attempts > 2.2:
                 notes.append("盗术投机流：偷气运/机缘/因果/寿元/传承频率过高。")
             if theft_attempts > 2 and theft_resolutions < 0.15:
                 notes.append("盗术投机流：失败后赔偿/拒赔/强逃几乎不发生，失败事件覆盖不足。")

@@ -100,6 +100,9 @@ class Player:
     stolen_fate_count: int = 0
     stolen_lifespan_count: int = 0
     stolen_inheritance_count: int = 0
+    theft_high_tier_attempts: int = 0
+    theft_high_tier_successes: int = 0
+    theft_monthly_event_count: int = 0
     theft_exposure_gain: int = 0
     theft_karma_gain: int = 0
     npc_affection: Dict[str, int] = field(default_factory=dict)
@@ -229,6 +232,9 @@ class Player:
             "stolen_fate_count",
             "stolen_lifespan_count",
             "stolen_inheritance_count",
+            "theft_high_tier_attempts",
+            "theft_high_tier_successes",
+            "theft_monthly_event_count",
             "theft_exposure_gain",
             "theft_karma_gain",
             "souls_refined",
@@ -353,7 +359,8 @@ class Player:
             f"装备：持有{equipment_count(self)}件｜评分{equipment_score(self)}｜加成{equipment_effect_text}\n"
             f"隐患：暴露度{self.exposure}｜心魔值{self.heart_demon}｜魔气值{self.demonic_qi}｜业力值{self.karma}\n"
             f"名声：正道声望{self.righteous_reputation}｜旁门声望{self.reputation:+d}｜结仇{self.enemy_count}\n"
-            f"盗术：等级{self.theft_skill}｜经验{self.theft_exp}｜尝试{self.theft_attempts}｜成功{self.theft_successes}｜失败{self.theft_failures}｜功法残页{self.stolen_manual_fragments}\n"
+            f"盗术：等级{self.theft_skill}｜经验{self.theft_exp}｜尝试{self.theft_attempts}｜成功{self.theft_successes}｜失败{self.theft_failures}｜赔偿{self.theft_compensations}｜拒赔{self.theft_refusals}｜强逃{self.theft_escape_count}\n"
+            f"盗术高阶：高阶尝试{self.theft_high_tier_attempts}｜高阶成功{self.theft_high_tier_successes}｜功法残页{self.stolen_manual_fragments}｜偷修为{self.stolen_cultivation_count}｜偷气运{self.stolen_luck_count}｜偷机缘{self.stolen_opportunity_count}｜偷因果{self.stolen_fate_count}｜偷寿元{self.stolen_lifespan_count}｜偷传承{self.stolen_inheritance_count}｜月末反噬{self.theft_monthly_event_count}\n"
             f"族人好感：{affection_text}\n"
             f"隐藏：古玉瓶{jade_text}｜残破魂幡{banner_text}｜黑市暗号{'已持有' if self.has_black_market_password else '未持有'}｜追踪标记{self.tracking_marks}｜情意锁低阶｜炼魂次数{self.souls_refined}"
         )
@@ -417,6 +424,9 @@ class Player:
             "stolen_fate_count": self.stolen_fate_count,
             "stolen_lifespan_count": self.stolen_lifespan_count,
             "stolen_inheritance_count": self.stolen_inheritance_count,
+            "theft_high_tier_attempts": self.theft_high_tier_attempts,
+            "theft_high_tier_successes": self.theft_high_tier_successes,
+            "theft_monthly_event_count": self.theft_monthly_event_count,
             "theft_exposure_gain": self.theft_exposure_gain,
             "theft_karma_gain": self.theft_karma_gain,
             "npc_affection": self.npc_affection,
@@ -525,6 +535,9 @@ class Player:
             stolen_fate_count=_int_from(data, "stolen_fate_count", 0),
             stolen_lifespan_count=_int_from(data, "stolen_lifespan_count", 0),
             stolen_inheritance_count=_int_from(data, "stolen_inheritance_count", 0),
+            theft_high_tier_attempts=_int_from(data, "theft_high_tier_attempts", 0),
+            theft_high_tier_successes=_int_from(data, "theft_high_tier_successes", 0),
+            theft_monthly_event_count=_int_from(data, "theft_monthly_event_count", 0),
             theft_exposure_gain=_int_from(data, "theft_exposure_gain", 0),
             theft_karma_gain=_int_from(data, "theft_karma_gain", 0),
             npc_affection=dict(data.get("npc_affection") or {}),

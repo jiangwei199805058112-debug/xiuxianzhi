@@ -196,6 +196,7 @@ def run_tournament(player: Player) -> Dict[str, object]:
         "talisman_bonus": talisman_bonus,
         "heishui_intel_bonus": mind_intel_bonus + trial_intel_bonus + combat_intel_bonus,
         "theft_tournament_adjustment": int(theft_adjustments.get("total", 0)),
+        "theft_tournament_notes": list(theft_adjustments.get("notes", [])),
         "equipment_score": equipment_score(player),
         "alchemy_reserve_bonus": alchemy_reserve_bonus,
         "reward_text": reward_text,
@@ -219,6 +220,11 @@ def format_tournament_result(result: Dict[str, object]) -> str:
         lines.append(f"黑水情报修正：{int(result.get('heishui_intel_bonus', 0)):+d}")
     if result.get("theft_tournament_adjustment", 0):
         lines.append(f"盗术综合修正：{int(result.get('theft_tournament_adjustment', 0)):+d}")
+    theft_notes = result.get("theft_tournament_notes", [])
+    if isinstance(theft_notes, list) and theft_notes:
+        lines.append("盗术评价：")
+        for note in theft_notes:
+            lines.append(f"- {note}")
     lines.append(f"总分：{result['total']}/100")
     lines.append(f"名次：第 {result['rank']} 名")
     lines.append(f"目标：{'达成，进入前十' if result['top_ten'] else '未达成，未入前十'}")
