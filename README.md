@@ -192,3 +192,7 @@ python simulate.py
 4. `docs/canon/09_chapter1_route_event_chains.md`
 5. `docs/canon/10_chapter1_event_pool.md`
 6. `docs/canon/11_tournament_event_design.md`
+
+`docs/design/route_balance_notes.md` 是九条路线的数值平衡、风险阈值、大比得分构成、模拟验收指标设计文档。
+
+后续将第一章事件池、路线事件、大比事件接入代码时，应参考该文档控制路线强度。后续涉及 `simulate.py` 调整时，也应参考该文档中的模拟指标。
