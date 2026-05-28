@@ -1,0 +1,105 @@
+[
+  {
+    "event_id": "EVT_CH1_POOL_ALCHEMY_001_BURNT_POT",
+    "title": "一炉焦黑",
+    "event_type": "alchemy_random",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 40,
+    "weight": 3,
+    "month_min": 1,
+    "month_max": 11,
+    "cooldown_months": 2,
+    "risk_level": "low",
+    "route_tags": ["alchemy"],
+    "npc_ids": ["沈霜"],
+    "text": "丹炉里冒出一股焦苦黑烟，一炉药材在炉底结成黑渣。",
+    "auto_choice": "review_fire",
+    "conditions": [
+      {
+        "any": [
+          {"field": "monthly_action_counts.alchemy", "op": ">=", "value": 1},
+          {"field": "alchemy_mastery", "op": ">", "value": 0}
+        ]
+      }
+    ],
+    "choices": [
+      {
+        "choice_id": "review_fire",
+        "label": "复盘火候",
+        "effects": [
+          {"field": "alchemy_path_level", "op": "add", "value": 1, "summary": "炼丹路线经验+1"},
+          {"field": "route_tags", "op": "append", "value": "alchemy", "summary": "记录炼丹路线标记"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_POOL_ALCHEMY_002_FIRE_INSIGHT",
+    "title": "火候灵光",
+    "event_type": "alchemy_positive",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 30,
+    "weight": 2,
+    "month_min": 4,
+    "month_max": 11,
+    "cooldown_months": 3,
+    "risk_level": "low",
+    "route_tags": ["alchemy"],
+    "npc_ids": ["沈霜"],
+    "text": "你复盘废丹时忽然明白，火候不是越猛越好，而要随药性细调。",
+    "auto_choice": "write_down_fire",
+    "conditions": [
+      {"field": "monthly_action_counts.alchemy", "op": ">=", "value": 1},
+      {"field": "alchemy_mastery", "op": ">=", "value": 8}
+    ],
+    "choices": [
+      {
+        "choice_id": "write_down_fire",
+        "label": "记下火候变化",
+        "effects": [
+          {"field": "alchemy_path_level", "op": "add", "value": 1, "summary": "炼丹路线经验+1"},
+          {"field": "route_tags", "op": "append", "value": "alchemy", "summary": "记录炼丹路线标记"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_POOL_ALCHEMY_003_PILL_TOXIN_WARNING",
+    "title": "丹毒微苦",
+    "event_type": "alchemy_warning",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 45,
+    "weight": 2,
+    "month_min": 5,
+    "month_max": 11,
+    "cooldown_months": 3,
+    "risk_level": "medium",
+    "route_tags": ["alchemy"],
+    "npc_ids": ["沈霜"],
+    "text": "修炼时口中有一丝发苦，经脉也有短促滞涩感。",
+    "auto_choice": "pause_and_adjust",
+    "conditions": [
+      {
+        "any": [
+          {"field": "monthly_action_counts.alchemy", "op": ">=", "value": 1},
+          {"field": "pill_toxin_level", "op": ">", "value": 0},
+          {"field": "pills", "op": ">=", "value": 2}
+        ]
+      }
+    ],
+    "choices": [
+      {
+        "choice_id": "pause_and_adjust",
+        "label": "暂缓服丹调息",
+        "effects": [
+          {"field": "alchemy_path_level", "op": "add", "value": 1, "summary": "炼丹路线经验+1"},
+          {"field": "pill_toxin_level", "op": "add", "value": 1, "summary": "丹毒风险轻微记录"},
+          {"field": "route_tags", "op": "append", "value": "alchemy", "summary": "记录炼丹路线标记"}
+        ]
+      }
+    ]
+  }
+]

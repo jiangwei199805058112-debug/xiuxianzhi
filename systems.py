@@ -28,6 +28,8 @@ from cultivation_assets import (
     upgrade_spirit_field,
 )
 from data import ACTION_NAMES, ATTRIBUTE_NAMES, MARKET_GOODS, MARKET_PRICES, MONTHLY_EVENTS, NPCS
+from chapter1_event_state import record_monthly_action
+from chapter1_events import format_chapter1_event_log, process_chapter1_monthly_events
 from growth_system import (
     apply_breakthrough_insight,
     breakthrough_insight_menu_text,
@@ -390,6 +392,7 @@ def action_market(player: Player) -> str:
         )
         return _append_growth(result, growth_text)
     if choice == "D":
+        record_monthly_action(player, "blackwater")
         return _append_growth(heishui_market_action(player), gain_mastery(player, "market_mastery", 2))
     if choice == "E":
         print(equipment_shop_text())
@@ -776,14 +779,22 @@ def _manage_spirit_field(player: Player) -> str:
     if choice == "1":
         return field_status_text(player)
     if choice == "2":
+        record_monthly_action(player, "farm_care")
         return _append_growth(one_click_plant(player), gain_mastery(player, "spirit_field_mastery", 5, foundation_gain=1))
     if choice == "3":
+        record_monthly_action(player, "farm_care")
+        record_monthly_action(player, "farm_tend")
         return _append_growth(tend_all_fields(player), gain_mastery(player, "spirit_field_mastery", 5, foundation_gain=2))
     if choice == "4":
+        record_monthly_action(player, "farm_care")
+        record_monthly_action(player, "farm_harvest")
         return _append_growth(harvest_all_fields(player), gain_mastery(player, "spirit_field_mastery", 5, foundation_gain=1))
     if choice == "5":
+        record_monthly_action(player, "farm_care")
         return _append_growth(upgrade_spirit_field(player), gain_mastery(player, "spirit_field_mastery", 2))
     if choice == "6":
+        record_monthly_action(player, "farm_care")
+        record_monthly_action(player, "market")
         return _append_growth(buy_seed_pack(player), gain_mastery(player, "market_mastery", 1))
     return "你暂时没有处理灵田。"
 
@@ -793,6 +804,7 @@ def _manage_furnace(player: Player) -> str:
     print(furnace_shop_text(player))
     selected = _read_choice("请选择炼丹炉：")
     result = buy_furnace(player, int(selected)) if selected.isdigit() else "你没有更换炼丹炉。"
+    record_monthly_action(player, "alchemy")
     return _append_growth(result, gain_mastery(player, "market_mastery", 2))
 
 
@@ -810,10 +822,12 @@ def _manage_equipment(player: Player) -> str:
         print(equipment_shop_text())
         selected = _read_choice("请选择购买装备：")
         result = buy_equipment(player, int(selected)) if selected.isdigit() else "你没有购买装备。"
+        record_monthly_action(player, "market")
         return _append_growth(result, gain_mastery(player, "market_mastery", 2))
     if choice == "3":
         print(equipment_inventory_text(player))
         selected = _read_choice("请选择装备编号：")
+        record_monthly_action(player, "market")
         return equip_item(player, int(selected)) if selected.isdigit() else "你没有更换装备。"
     return "你没有更换装备。"
 
@@ -827,11 +841,13 @@ def _manage_theft(player: Player) -> str:
     choice = _read_choice("请选择盗术事项：")
 
     if choice == "1":
+        record_monthly_action(player, "theft")
         return train_theft(player)
     theft_type = THEFT_TYPE_BY_MENU.get(choice)
     if not theft_type:
         return "你暂时没有动用盗术。"
 
+    record_monthly_action(player, "theft")
     result = attempt_theft(player, theft_type)
     lines = [str(result["text"])]
     if result.get("needs_resolution"):
@@ -894,6 +910,20 @@ ACTION_HANDLERS: Dict[str, Callable[[Player], str]] = {
     "legacy_meditate": action_meditate,
 }
 NON_ADVANCING_ACTIONS = {"7"}
+ACTION_COUNT_KEYS = {
+    "1": "meditation",
+    "2": "herb_gathering",
+    "3": "alchemy",
+    "4": "market",
+    "5": "social",
+    "6": "demonic",
+    "legacy_spirit_field": "farm_care",
+    "legacy_family_work": "social",
+    "legacy_spell_training": "combat_training",
+    "legacy_investigate": "intel",
+    "legacy_romance": "social",
+    "legacy_meditate": "meditation",
+}
 
 
 def perform_action(player: Player, choice: str) -> str:
@@ -907,6 +937,9 @@ def perform_action(player: Player, choice: str) -> str:
         setattr(player, "_waive_next_action", False)
         setattr(player, "_last_action_waived", True)
     elif choice not in NON_ADVANCING_ACTIONS:
+        action_key = ACTION_COUNT_KEYS.get(choice)
+        if action_key:
+            record_monthly_action(player, action_key)
         player.advance_action()
     return result
 
@@ -919,6 +952,7 @@ def monthly_event(player: Player) -> str:
     heishui_text = resolve_monthly_risk_event(player)
     theft_text = resolve_monthly_theft_event(player)
     field_text = advance_spirit_fields(player)
+    chapter1_event_logs = process_chapter1_monthly_events(player, player.month, interactive=False)
     player.clamp()
     effects_text = "，".join(
         f"{ATTRIBUTE_NAMES.get(key, key)}{value:+d}" for key, value in event["effects"].items()
@@ -934,6 +968,8 @@ def monthly_event(player: Player) -> str:
         lines.append(theft_text)
     if field_text:
         lines.append(field_text)
+    for log_entry in chapter1_event_logs:
+        lines.append(format_chapter1_event_log(log_entry))
     lines.append("本月高年份灵草正常出售次数已重置。")
     return "\n".join(lines)
 

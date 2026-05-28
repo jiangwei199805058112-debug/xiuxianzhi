@@ -165,6 +165,7 @@ class Player:
     triggered_event_ids: List[str] = field(default_factory=list)
     event_cooldowns: Dict[str, int] = field(default_factory=dict)
     monthly_event_log: List[Dict[str, Any]] = field(default_factory=list)
+    monthly_action_counts: Dict[str, int] = field(default_factory=dict)
     route_tags: List[str] = field(default_factory=list)
     theft_trace_level: int = 0
     blackwater_debt: int = 0
@@ -585,6 +586,7 @@ class Player:
             "triggered_event_ids": self.triggered_event_ids,
             "event_cooldowns": self.event_cooldowns,
             "monthly_event_log": self.monthly_event_log,
+            "monthly_action_counts": self.monthly_action_counts,
             "route_tags": self.route_tags,
             "theft_trace_level": self.theft_trace_level,
             "blackwater_debt": self.blackwater_debt,
@@ -733,6 +735,7 @@ class Player:
             triggered_event_ids=list(data.get("triggered_event_ids") or []),
             event_cooldowns=dict(data.get("event_cooldowns") or {}),
             monthly_event_log=list(data.get("monthly_event_log") or []),
+            monthly_action_counts=dict(data.get("monthly_action_counts") or {}),
             route_tags=list(data.get("route_tags") or []),
             theft_trace_level=_int_from(data, "theft_trace_level", 0),
             blackwater_debt=_int_from(data, "blackwater_debt", 0),

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, Iterable, List
 
 from event_engine import EventConfigError, load_json_file
 
@@ -72,8 +72,73 @@ def load_chapter1_event_pool(pool_name: str, base_dir: Path | None = None) -> Li
     if not isinstance(data, list):
         raise EventConfigError(f"Invalid event pool: {path} root must be an array")
     events = [row for row in data if isinstance(row, dict)]
-    _validate_event_ids(events)
+    configs = load_chapter1_event_configs(root)
+    validate_chapter1_events(events, configs=configs, source=path)
     return events
+
+
+def load_chapter1_event_pools(
+    pool_names: Iterable[str] | None = None,
+    base_dir: Path | None = None,
+) -> List[Dict[str, Any]]:
+    root = _base_dir(base_dir)
+    names = list(pool_names) if pool_names is not None else [
+        "farm_events",
+        "alchemy_events",
+        "mixed_events",
+    ]
+    configs = load_chapter1_event_configs(root)
+    all_events: List[Dict[str, Any]] = []
+    for pool_name in names:
+        path = root / "pools" / f"{str(pool_name).strip()}.json"
+        if not path.exists():
+            continue
+        data = load_json_file(path)
+        if not isinstance(data, list):
+            raise EventConfigError(f"Invalid event pool: {path} root must be an array")
+        events = [row for row in data if isinstance(row, dict)]
+        validate_chapter1_events(events, configs=configs, source=path)
+        all_events.extend(events)
+    _validate_event_ids(all_events)
+    return all_events
+
+
+def validate_chapter1_events(
+    events: List[Dict[str, Any]],
+    *,
+    configs: Dict[str, Any],
+    source: Path | str,
+) -> None:
+    schema = configs.get("schema", {})
+    required_fields = schema.get("required_event_fields", [])
+    route_tags = set(configs.get("route_tags", {}).get("route_tags", []))
+    for event in events:
+        event_id = str(event.get("event_id") or "")
+        for field in required_fields:
+            if field not in event:
+                raise EventConfigError(f"Invalid event {event_id or '<missing>'}: missing {field} in {source}")
+        if not event_id:
+            raise EventConfigError(f"Invalid event: missing event_id in {source}")
+        if not isinstance(event.get("repeatable"), bool):
+            raise EventConfigError(f"Invalid event {event_id}: repeatable must be boolean")
+        if int(event.get("weight", 0) or 0) < 0:
+            raise EventConfigError(f"Invalid event {event_id}: weight must be non-negative")
+        if int(event.get("cooldown_months", event.get("cooldown", 0)) or 0) < 0:
+            raise EventConfigError(f"Invalid event {event_id}: cooldown must be non-negative")
+        month_min = event.get("month_min")
+        month_max = event.get("month_max")
+        if month_min is not None and month_max is not None and int(month_min) > int(month_max):
+            raise EventConfigError(f"Invalid event {event_id}: month_min greater than month_max")
+        choices = event.get("choices")
+        if not isinstance(choices, list) or not choices:
+            raise EventConfigError(f"Invalid event {event_id}: choices must be a non-empty array")
+        for choice in choices:
+            if not isinstance(choice, dict) or not str(choice.get("choice_id") or ""):
+                raise EventConfigError(f"Invalid event {event_id}: choice missing choice_id")
+        for tag in event.get("route_tags", []) or []:
+            if tag not in route_tags:
+                raise EventConfigError(f"Invalid route tag: {tag}")
+    _validate_event_ids(events)
 
 
 def _validate_event_ids(events: List[Dict[str, Any]]) -> None:

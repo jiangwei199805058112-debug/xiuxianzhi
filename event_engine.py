@@ -1,7 +1,7 @@
 """通用事件引擎骨架。
 
-v0.1.26 只提供配置加载、条件判断和效果应用的基础能力。
-本模块不会主动触发任何第一章真实事件。
+v0.1.27 提供配置加载、条件判断和效果应用的基础能力。
+真实事件触发由第一章事件入口按配置控制。
 """
 
 from __future__ import annotations
@@ -28,12 +28,33 @@ def load_json_file(path: str | Path) -> Any:
 
 
 def _get_attr(player: Any, field: str) -> Any:
+    if "." in field:
+        current: Any = player
+        for part in field.split("."):
+            if isinstance(current, dict):
+                current = current.get(part)
+            else:
+                current = getattr(current, part, None)
+            if current is None:
+                return None
+        return current
     if isinstance(player, dict):
         return player.get(field)
     return getattr(player, field, None)
 
 
 def _has_attr(player: Any, field: str) -> bool:
+    if "." in field:
+        marker = object()
+        current: Any = player
+        for part in field.split("."):
+            if isinstance(current, dict):
+                current = current.get(part, marker)
+            else:
+                current = getattr(current, part, marker)
+            if current is marker:
+                return False
+        return True
     if isinstance(player, dict):
         return field in player
     return hasattr(player, field)
@@ -93,6 +114,23 @@ def check_event_condition(player: Any, condition: Any) -> bool:
 
 
 def _set_attr(player: Any, field: str, value: Any) -> None:
+    if "." in field:
+        parts = field.split(".")
+        current: Any = player
+        for part in parts[:-1]:
+            if isinstance(current, dict):
+                current = current.setdefault(part, {})
+            else:
+                nested = getattr(current, part, None)
+                if nested is None:
+                    nested = {}
+                    setattr(current, part, nested)
+                current = nested
+        if isinstance(current, dict):
+            current[parts[-1]] = value
+        else:
+            setattr(current, parts[-1], value)
+        return
     if isinstance(player, dict):
         player[field] = value
     else:
@@ -204,7 +242,7 @@ def apply_event_choice(player: Any, event: Dict[str, Any], choice_id: str) -> Di
         if event_id not in triggered:
             triggered.append(event_id)
         setattr(player, "triggered_event_ids", triggered)
-        cooldown = int(event.get("cooldown", 0) or 0)
+        cooldown = int(event.get("cooldown_months", event.get("cooldown", 0)) or 0)
         if cooldown > 0:
             cooldowns = dict(getattr(player, "event_cooldowns", {}) or {})
             cooldowns[event_id] = cooldown

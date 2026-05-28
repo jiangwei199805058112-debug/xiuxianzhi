@@ -208,3 +208,9 @@ python simulate.py
 v0.1.26 增加第一章事件状态字段与空事件引擎骨架：新增事件状态字段、旧存档补字段逻辑、`event_engine.py`、`chapter1_event_loader.py`、`chapter1_event_state.py`、`chapter1_events.py`，以及 `configs/events/chapter1/` 配置目录骨架。本版本只打基础，不接入真实事件池，不改变现有第一章玩法节奏。
 
 后续 v0.1.27 起可在该骨架上逐步接入灵田、炼丹、盗术、黑水、情报、魔道和大比事件池。事件系统开发仍需遵守小步提交、旧存档兼容、无模拟不提交、不 force push、不提交 `AGENTS.md`。
+
+## v0.1.27 灵田与炼丹事件池 MVP
+
+v0.1.27 在第一章事件骨架上接入灵田、炼丹与随心混合三个低风险事件池 MVP：新增 `farm_events.json`、`alchemy_events.json`、`mixed_events.json`，并支持月度触发、基础条件判断、冷却、自动选择和事件日志记录。
+
+本版本不接入盗术、黑水、魔道、情报、大比事件池，不改变第一章现有玩法节奏。后续事件池扩展仍需遵守小步提交、旧存档兼容、无模拟不提交、不 force push、不提交 `AGENTS.md`。

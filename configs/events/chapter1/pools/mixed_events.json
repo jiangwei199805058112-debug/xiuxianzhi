@@ -1,0 +1,94 @@
+[
+  {
+    "event_id": "EVT_CH1_POOL_MIXED_001_SMALL_RECOVERY",
+    "title": "小补救",
+    "event_type": "mixed_recovery",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 25,
+    "weight": 2,
+    "month_min": 3,
+    "month_max": 11,
+    "cooldown_months": 3,
+    "risk_level": "low",
+    "route_tags": ["mixed"],
+    "npc_ids": ["沈怀安"],
+    "text": "这次处理得不算漂亮，但错得还不深，收拾一下仍能继续往前走。",
+    "auto_choice": "review_and_stop_loss",
+    "conditions": [
+      {"field": "monthly_action_counts.system_contacts", "op": ">=", "value": 2}
+    ],
+    "choices": [
+      {
+        "choice_id": "review_and_stop_loss",
+        "label": "复盘止损",
+        "effects": [
+          {"field": "mixed_path_score", "op": "add", "value": 1, "summary": "随心混合经验+1"},
+          {"field": "route_tags", "op": "append", "value": "mixed", "summary": "记录随心混合标记"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_POOL_MIXED_002_SMALL_COMBO",
+    "title": "小组合",
+    "event_type": "mixed_positive",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 25,
+    "weight": 2,
+    "month_min": 5,
+    "month_max": 11,
+    "cooldown_months": 3,
+    "risk_level": "low",
+    "route_tags": ["mixed"],
+    "npc_ids": [],
+    "text": "一张低级符、一点草药经验和半截听来的情报，竟然拼出一个能用的小办法。",
+    "auto_choice": "use_low_tier_combo",
+    "conditions": [
+      {"field": "monthly_action_counts.system_contacts", "op": ">=", "value": 2}
+    ],
+    "choices": [
+      {
+        "choice_id": "use_low_tier_combo",
+        "label": "用杂学拼出办法",
+        "effects": [
+          {"field": "mixed_path_score", "op": "add", "value": 1, "summary": "随心混合经验+1"},
+          {"field": "resource_scatter_level", "op": "add", "value": 1, "summary": "资源分散轻微记录"},
+          {"field": "route_tags", "op": "append", "value": "mixed", "summary": "记录随心混合标记"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_POOL_MIXED_003_ADAPTIVE_PRELUDE",
+    "title": "临场应变前兆",
+    "event_type": "mixed_prelude",
+    "chapter": 1,
+    "repeatable": false,
+    "priority": 20,
+    "weight": 1,
+    "month_min": 8,
+    "month_max": 11,
+    "cooldown_months": 0,
+    "risk_level": "low",
+    "route_tags": ["mixed"],
+    "npc_ids": ["沈怀安"],
+    "text": "这一年走得并不专精，但你开始习惯从乱局里找能用的东西。",
+    "auto_choice": "keep_adapting",
+    "conditions": [
+      {"field": "monthly_action_counts.system_contacts", "op": ">=", "value": 2},
+      {"field": "mixed_path_score", "op": ">=", "value": 1}
+    ],
+    "choices": [
+      {
+        "choice_id": "keep_adapting",
+        "label": "继续保留弹性",
+        "effects": [
+          {"field": "mixed_path_score", "op": "add", "value": 1, "summary": "随心混合经验+1"},
+          {"field": "route_tags", "op": "append", "value": "mixed", "summary": "记录随心混合标记"}
+        ]
+      }
+    ]
+  }
+]

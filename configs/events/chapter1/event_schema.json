@@ -1,6 +1,6 @@
 {
-  "version": "v0.1.26",
-  "description": "第一章事件配置基础结构。v0.1.26 仅提供字段约定和空引擎骨架，不接入真实事件池。",
+  "version": "v0.1.27",
+  "description": "第一章事件配置基础结构。v0.1.27 接入灵田、炼丹与随心混合低风险事件池 MVP。",
   "required_event_fields": [
     "event_id",
     "title",
@@ -11,6 +11,16 @@
     "weight",
     "conditions",
     "choices"
+  ],
+  "optional_event_fields": [
+    "month_min",
+    "month_max",
+    "cooldown_months",
+    "risk_level",
+    "route_tags",
+    "npc_ids",
+    "text",
+    "auto_choice"
   ],
   "supported_condition_ops": [
     "==",

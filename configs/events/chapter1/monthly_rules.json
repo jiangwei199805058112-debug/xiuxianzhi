@@ -1,9 +1,10 @@
 {
-  "version": "v0.1.26",
-  "enabled": false,
-  "description": "第一章月度事件规则。v0.1.26 默认关闭真实事件触发，仅保留结构。",
-  "max_random_events_per_month": 0,
-  "max_npc_reaction_events_per_month": 0,
+  "version": "v0.1.27",
+  "enabled": true,
+  "description": "第一章月度事件规则。v0.1.27 仅启用灵田、炼丹与随心混合低风险事件池 MVP。",
+  "monthly_trigger_chance": 0.35,
+  "max_random_events_per_month": 1,
+  "max_npc_reaction_events_per_month": 1,
   "max_crisis_events_per_month": 0,
   "risk_decay_enabled": false
 }

@@ -996,6 +996,10 @@ def run_single_game(route: Dict[str, object], index: int) -> Dict[str, object]:
 
     result = run_tournament(player)
     result_flags = {str(flag) for flag in result["flags"]}
+    event_log = list(getattr(player, "monthly_event_log", []) or [])
+    farm_event_count = sum(1 for event in event_log if str(event.get("event_type", "")).startswith("farm"))
+    alchemy_event_count = sum(1 for event in event_log if str(event.get("event_type", "")).startswith("alchemy"))
+    mixed_event_count = sum(1 for event in event_log if str(event.get("event_type", "")).startswith("mixed"))
     return {
         "rank": int(result["rank"]),
         "top_ten": bool(result["top_ten"]),
@@ -1038,6 +1042,10 @@ def run_single_game(route: Dict[str, object], index: int) -> Dict[str, object]:
         "tracking_marks": player.tracking_marks,
         "heishui_risk_event_count": player.heishui_risk_event_count,
         "heishui_blindbox_net": player.heishui_blindbox_net,
+        "chapter1_event_count": len(event_log),
+        "chapter1_farm_event_count": farm_event_count,
+        "chapter1_alchemy_event_count": alchemy_event_count,
+        "chapter1_mixed_event_count": mixed_event_count,
         "spirit_field_harvest_count": player.spirit_field_harvest_count,
         "furnace_level": furnace_level(player),
         "equipment_count": equipment_count(player),
@@ -1120,6 +1128,10 @@ def summarize_route(route: Dict[str, object], runs: int) -> Dict[str, float | st
         "avg_tracking_marks": average(records, "tracking_marks"),
         "avg_heishui_risk_event_count": average(records, "heishui_risk_event_count"),
         "avg_heishui_blindbox_net": average(records, "heishui_blindbox_net"),
+        "avg_chapter1_event_count": average(records, "chapter1_event_count"),
+        "avg_chapter1_farm_event_count": average(records, "chapter1_farm_event_count"),
+        "avg_chapter1_alchemy_event_count": average(records, "chapter1_alchemy_event_count"),
+        "avg_chapter1_mixed_event_count": average(records, "chapter1_mixed_event_count"),
         "avg_spirit_field_harvest_count": average(records, "spirit_field_harvest_count"),
         "avg_furnace_level": average(records, "furnace_level"),
         "avg_equipment_count": average(records, "equipment_count"),
@@ -1194,6 +1206,10 @@ def print_summary(summary: Dict[str, float | str | int]) -> None:
     print(f"追踪标记平均值：{summary['avg_tracking_marks']:.1f}")
     print(f"月末黑水风险事件触发次数：{summary['avg_heishui_risk_event_count']:.1f}")
     print(f"盲盒平均净收益：{summary['avg_heishui_blindbox_net']:.1f}")
+    print(f"平均第一章事件触发数：{summary['avg_chapter1_event_count']:.1f}")
+    print(f"平均灵田事件触发数：{summary['avg_chapter1_farm_event_count']:.1f}")
+    print(f"平均炼丹事件触发数：{summary['avg_chapter1_alchemy_event_count']:.1f}")
+    print(f"平均随心事件触发数：{summary['avg_chapter1_mixed_event_count']:.1f}")
     print(f"平均灵田收获次数：{summary['avg_spirit_field_harvest_count']:.1f}")
     print(f"平均炼丹炉等级：{summary['avg_furnace_level']:.1f}")
     print(f"平均装备数量：{summary['avg_equipment_count']:.1f}")
