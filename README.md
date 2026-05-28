@@ -67,6 +67,19 @@ python main.py
 - `docs/systems/`：成长、盗术、炼丹、坊市/黑水、势力、关系、气运因果寿元业力等长期系统规划。
 - `docs/content/`：月末事件、遭遇事件、物品背景、功法技艺和支线任务钩子。
 
+### 新增设计文档
+
+- `docs/design/villain_character_template.md`：反派角色设定模板。
+- `docs/design/chapter1_route_encounters.md`：第一章九条路线与专属奇遇设计。
+- `docs/design/character_stats_and_relationships.md`：玩家数值、风险变量与 NPC 关系字段设计。
+- `docs/design/heart_demon_and_dual_cultivation.md`：心魔降低、调心、双修与关系后果设计。
+- `docs/design/qi_and_buguilou_design.md`：启与不归楼、强行灌顶、魔界本源种和长期伏笔设计。
+- `docs/design/equipment_and_sources.md`：第一章装备类型、装备来源、路线道具和装备对比功能设计。
+- `docs/design/theft_route_design.md`：盗术灰道流、窃运铜钱、偷机缘、偷气运等分支设计。
+- `docs/design/qingdeng_stained_branch.md`：祖祠青灯后接受黑玉残魂的正魔分支设计。
+- `docs/canon/story_samples/chapter1_orthodox_qingdeng.md`：正修打坐流小说化样章。
+- `docs/canon/story_samples/chapter1_mixed_path.md`：随心混合流小说化样章。
+
 ## 行动菜单
 
 1. 打坐修炼
