@@ -20,6 +20,7 @@ from cultivation_assets import (
 )
 from data import ACTIONS_PER_MONTH, INITIAL_NPC_AFFECTION, NPCS, SPIRIT_ROOTS, TOTAL_ACTIONS
 from growth_system import calculate_breadth, mastery_total
+from chapter1_event_state import ensure_event_state
 
 
 MAX_REALM_LEVEL = 9
@@ -161,6 +162,28 @@ class Player:
     tutorial_flags: List[str] = field(default_factory=list)
     total_actions: int = 0
     ending_flags: List[str] = field(default_factory=list)
+    triggered_event_ids: List[str] = field(default_factory=list)
+    event_cooldowns: Dict[str, int] = field(default_factory=dict)
+    monthly_event_log: List[Dict[str, Any]] = field(default_factory=list)
+    route_tags: List[str] = field(default_factory=list)
+    theft_trace_level: int = 0
+    blackwater_debt: int = 0
+    blackwater_trace_level: int = 0
+    demonic_contamination: int = 0
+    pill_toxin_level: int = 0
+    public_scandal_level: int = 0
+    field_pollution_level: int = 0
+    consumable_dependency_level: int = 0
+    resource_scatter_level: int = 0
+    orthodox_path_level: int = 0
+    farming_path_level: int = 0
+    alchemy_path_level: int = 0
+    theft_path_level: int = 0
+    blackwater_path_level: int = 0
+    intel_social_path_level: int = 0
+    demonic_path_level: int = 0
+    market_talisman_path_level: int = 0
+    mixed_path_score: int = 0
 
     def __post_init__(self) -> None:
         if not self.npc_affection:
@@ -201,6 +224,7 @@ class Player:
         self.clamp()
 
     def clamp(self) -> None:
+        ensure_event_state(self)
         numeric_min_zero = [
             "cultivation_progress",
             "cultivation",
@@ -287,6 +311,24 @@ class Player:
             "tracking_marks",
             "spirit_field_harvest_count",
             "total_actions",
+            "theft_trace_level",
+            "blackwater_debt",
+            "blackwater_trace_level",
+            "demonic_contamination",
+            "pill_toxin_level",
+            "public_scandal_level",
+            "field_pollution_level",
+            "consumable_dependency_level",
+            "resource_scatter_level",
+            "orthodox_path_level",
+            "farming_path_level",
+            "alchemy_path_level",
+            "theft_path_level",
+            "blackwater_path_level",
+            "intel_social_path_level",
+            "demonic_path_level",
+            "market_talisman_path_level",
+            "mixed_path_score",
         ]
         for attr in numeric_min_zero:
             if getattr(self, attr) < 0:
@@ -369,6 +411,7 @@ class Player:
         ensure_spirit_fields(self)
         ensure_equipment(self)
         self.tutorial_flags = [str(flag) for flag in self.tutorial_flags if str(flag)]
+        ensure_event_state(self)
 
     def advance_action(self) -> None:
         self.total_actions += 1
@@ -539,6 +582,28 @@ class Player:
             "tutorial_flags": self.tutorial_flags,
             "total_actions": self.total_actions,
             "ending_flags": self.ending_flags,
+            "triggered_event_ids": self.triggered_event_ids,
+            "event_cooldowns": self.event_cooldowns,
+            "monthly_event_log": self.monthly_event_log,
+            "route_tags": self.route_tags,
+            "theft_trace_level": self.theft_trace_level,
+            "blackwater_debt": self.blackwater_debt,
+            "blackwater_trace_level": self.blackwater_trace_level,
+            "demonic_contamination": self.demonic_contamination,
+            "pill_toxin_level": self.pill_toxin_level,
+            "public_scandal_level": self.public_scandal_level,
+            "field_pollution_level": self.field_pollution_level,
+            "consumable_dependency_level": self.consumable_dependency_level,
+            "resource_scatter_level": self.resource_scatter_level,
+            "orthodox_path_level": self.orthodox_path_level,
+            "farming_path_level": self.farming_path_level,
+            "alchemy_path_level": self.alchemy_path_level,
+            "theft_path_level": self.theft_path_level,
+            "blackwater_path_level": self.blackwater_path_level,
+            "intel_social_path_level": self.intel_social_path_level,
+            "demonic_path_level": self.demonic_path_level,
+            "market_talisman_path_level": self.market_talisman_path_level,
+            "mixed_path_score": self.mixed_path_score,
         }
 
     @classmethod
@@ -665,6 +730,28 @@ class Player:
             tutorial_flags=list(data.get("tutorial_flags") or []),
             total_actions=_int_from(data, "total_actions", 0),
             ending_flags=list(data.get("ending_flags", [])),
+            triggered_event_ids=list(data.get("triggered_event_ids") or []),
+            event_cooldowns=dict(data.get("event_cooldowns") or {}),
+            monthly_event_log=list(data.get("monthly_event_log") or []),
+            route_tags=list(data.get("route_tags") or []),
+            theft_trace_level=_int_from(data, "theft_trace_level", 0),
+            blackwater_debt=_int_from(data, "blackwater_debt", 0),
+            blackwater_trace_level=_int_from(data, "blackwater_trace_level", 0),
+            demonic_contamination=_int_from(data, "demonic_contamination", 0),
+            pill_toxin_level=_int_from(data, "pill_toxin_level", 0),
+            public_scandal_level=_int_from(data, "public_scandal_level", 0),
+            field_pollution_level=_int_from(data, "field_pollution_level", 0),
+            consumable_dependency_level=_int_from(data, "consumable_dependency_level", 0),
+            resource_scatter_level=_int_from(data, "resource_scatter_level", 0),
+            orthodox_path_level=_int_from(data, "orthodox_path_level", 0),
+            farming_path_level=_int_from(data, "farming_path_level", 0),
+            alchemy_path_level=_int_from(data, "alchemy_path_level", 0),
+            theft_path_level=_int_from(data, "theft_path_level", 0),
+            blackwater_path_level=_int_from(data, "blackwater_path_level", 0),
+            intel_social_path_level=_int_from(data, "intel_social_path_level", 0),
+            demonic_path_level=_int_from(data, "demonic_path_level", 0),
+            market_talisman_path_level=_int_from(data, "market_talisman_path_level", 0),
+            mixed_path_score=_int_from(data, "mixed_path_score", 0),
         )
         player.clamp()
         return player

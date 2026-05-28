@@ -1,0 +1,6 @@
+{
+  "version": "v0.1.26",
+  "description": "路线识别规则骨架。v0.1.26 不启用自动路线锁定。",
+  "enabled": false,
+  "rules": []
+}

@@ -1,0 +1,6 @@
+{
+  "version": "v0.1.26",
+  "description": "第一章事件权重配置。v0.1.26 暂不启用真实事件权重。",
+  "default_weight": 1,
+  "route_weight_modifiers": {}
+}

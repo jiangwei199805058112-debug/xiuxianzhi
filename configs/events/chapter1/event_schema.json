@@ -1,0 +1,39 @@
+{
+  "version": "v0.1.26",
+  "description": "第一章事件配置基础结构。v0.1.26 仅提供字段约定和空引擎骨架，不接入真实事件池。",
+  "required_event_fields": [
+    "event_id",
+    "title",
+    "event_type",
+    "chapter",
+    "repeatable",
+    "priority",
+    "weight",
+    "conditions",
+    "choices"
+  ],
+  "supported_condition_ops": [
+    "==",
+    "!=",
+    ">",
+    ">=",
+    "<",
+    "<=",
+    "in",
+    "not_in",
+    "contains",
+    "not_contains",
+    "exists",
+    "not_exists"
+  ],
+  "supported_effect_ops": [
+    "set",
+    "add",
+    "min",
+    "max",
+    "append",
+    "remove",
+    "flag_on",
+    "flag_off"
+  ]
+}
