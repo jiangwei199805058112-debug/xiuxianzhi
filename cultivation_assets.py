@@ -8,35 +8,77 @@ import random
 from typing import Any, Dict, List, Tuple
 
 
-CONFIG_DIR = Path(__file__).resolve().parent / "configs" / "cultivation"
-EQUIPMENT_SLOTS = ("weapon", "robe", "boots", "charm")
+BASE_DIR = Path(__file__).resolve().parent
+CONFIG_DIR = BASE_DIR / "configs" / "cultivation"
+EQUIPMENT_CONFIG_DIR = BASE_DIR / "configs" / "equipment"
+EQUIPMENT_SLOTS = ("weapon", "robe", "boots", "talisman")
+LEGACY_SLOT_ALIASES = {
+    "charm": "talisman",
+    "护符": "talisman",
+}
 EQUIPMENT_ATTRS = (
-    "attack",
-    "defense",
-    "speed",
-    "physique",
-    "spiritual_power",
-    "dao_heart",
-    "divine_sense",
-    "exposure",
-    "heart_demon",
+    "attack_bonus",
+    "defense_bonus",
+    "speed_bonus",
+    "dao_heart_bonus",
+    "divine_sense_bonus",
+    "cultivation_bonus",
+    "alchemy_bonus",
+    "stealth_bonus",
+    "exposure_bonus",
+    "heart_demon_bonus",
+    "karma_bonus",
 )
 EQUIPMENT_ATTR_NAMES = {
-    "attack": "攻击",
-    "defense": "防御",
-    "speed": "身法",
-    "physique": "体魄",
-    "spiritual_power": "灵力",
-    "dao_heart": "道心",
-    "divine_sense": "神识",
-    "exposure": "暴露度",
-    "heart_demon": "心魔值",
+    "attack_bonus": "攻击",
+    "defense_bonus": "防御",
+    "speed_bonus": "身法",
+    "dao_heart_bonus": "道心",
+    "divine_sense_bonus": "神识",
+    "cultivation_bonus": "修炼辅助",
+    "alchemy_bonus": "炼丹辅助",
+    "stealth_bonus": "隐匿",
+    "exposure_bonus": "暴露",
+    "heart_demon_bonus": "心魔",
+    "karma_bonus": "业力",
+}
+LEGACY_EFFECT_ALIASES = {
+    "attack": "attack_bonus",
+    "defense": "defense_bonus",
+    "speed": "speed_bonus",
+    "dao_heart": "dao_heart_bonus",
+    "divine_sense": "divine_sense_bonus",
+    "cultivation": "cultivation_bonus",
+    "cultivation_speed": "cultivation_bonus",
+    "alchemy": "alchemy_bonus",
+    "stealth": "stealth_bonus",
+    "exposure": "exposure_bonus",
+    "heart_demon": "heart_demon_bonus",
+    "karma": "karma_bonus",
+}
+POSITIVE_EQUIPMENT_ATTRS = {
+    "attack_bonus",
+    "defense_bonus",
+    "speed_bonus",
+    "dao_heart_bonus",
+    "divine_sense_bonus",
+    "cultivation_bonus",
+    "alchemy_bonus",
+    "stealth_bonus",
+}
+RISK_EQUIPMENT_ATTRS = {"exposure_bonus", "heart_demon_bonus", "karma_bonus"}
+QUALITY_NAMES = {
+    "common": "普通",
+    "uncommon": "良品",
+    "rare": "稀有",
+    "cursed": "来历不明",
+    "reward": "大比奖励",
 }
 SLOT_NAMES = {
     "weapon": "武器",
     "robe": "法袍",
     "boots": "靴子",
-    "charm": "护符",
+    "talisman": "护符",
 }
 MATERIAL_NAMES = {
     "material_juqi_grass": "聚气草",
@@ -66,9 +108,91 @@ def load_furnaces() -> List[Dict[str, Any]]:
     return data if isinstance(data, list) else []
 
 
+def _load_json_path(path: Path) -> Any:
+    with path.open("r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def normalize_equipment_slot(slot: Any) -> str:
+    raw_slot = str(slot or "").strip()
+    return LEGACY_SLOT_ALIASES.get(raw_slot, raw_slot)
+
+
+def normalize_equipment_effects(effects: Any) -> Dict[str, int]:
+    if not isinstance(effects, dict):
+        return {}
+    normalized: Dict[str, int] = {}
+    for raw_attr, raw_value in effects.items():
+        attr = LEGACY_EFFECT_ALIASES.get(str(raw_attr), str(raw_attr))
+        if attr not in EQUIPMENT_ATTRS:
+            continue
+        try:
+            value = int(raw_value)
+        except (TypeError, ValueError):
+            continue
+        if value:
+            normalized[attr] = normalized.get(attr, 0) + value
+    return normalized
+
+
+def _normalize_str_list(value: Any) -> List[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item) for item in value if str(item)]
+
+
+def normalize_equipment_item(item: Dict[str, Any]) -> Dict[str, Any]:
+    item_id = str(item.get("id") or item.get("item_id") or "").strip()
+    slot = normalize_equipment_slot(item.get("slot"))
+    effects = normalize_equipment_effects(item.get("effects", {}))
+    try:
+        price = int(item.get("price", 0))
+    except (TypeError, ValueError):
+        price = 0
+    return {
+        "id": item_id,
+        "item_id": item_id,
+        "name": str(item.get("name") or item_id),
+        "slot": slot if slot in EQUIPMENT_SLOTS else "talisman",
+        "quality": str(item.get("quality") or "common"),
+        "price": max(0, price),
+        "description": str(item.get("description") or item.get("desc") or ""),
+        "desc": str(item.get("description") or item.get("desc") or ""),
+        "effects": effects,
+        "tags": _normalize_str_list(item.get("tags")),
+        "risk_tags": _normalize_str_list(item.get("risk_tags")),
+    }
+
+
+def load_equipment_items() -> List[Dict[str, Any]]:
+    new_path = EQUIPMENT_CONFIG_DIR / "equipment_items.json"
+    if new_path.exists():
+        data = _load_json_path(new_path)
+    else:
+        data = _load_json("equipment.json")
+    raw_items = data if isinstance(data, list) else []
+    items = [normalize_equipment_item(item) for item in raw_items if isinstance(item, dict)]
+    return [item for item in items if item["item_id"]]
+
+
 def load_equipment() -> List[Dict[str, Any]]:
-    data = _load_json("equipment.json")
-    return data if isinstance(data, list) else []
+    return load_equipment_items()
+
+
+def load_equipment_sources() -> Dict[str, Dict[str, Any]]:
+    path = EQUIPMENT_CONFIG_DIR / "equipment_sources.json"
+    if not path.exists():
+        return {
+            "market_basic": {
+                "name": "普通坊市基础装备",
+                "items": [
+                    {"equipment_id": item["item_id"], "price": item.get("price", 0), "weight": 1}
+                    for item in load_equipment_items()
+                ],
+            }
+        }
+    data = _load_json_path(path)
+    return data if isinstance(data, dict) else {}
 
 
 def crops_by_id() -> Dict[str, Dict[str, Any]]:
@@ -80,7 +204,11 @@ def furnaces_by_id() -> Dict[str, Dict[str, Any]]:
 
 
 def equipment_by_id() -> Dict[str, Dict[str, Any]]:
-    return {str(item.get("item_id")): item for item in load_equipment()}
+    return {str(item.get("item_id")): item for item in load_equipment_items()}
+
+
+def get_equipment_by_id(equipment_id: str) -> Dict[str, Any] | None:
+    return equipment_by_id().get(str(equipment_id))
 
 
 def empty_field(plot_id: int) -> Dict[str, Any]:
@@ -513,6 +641,12 @@ def consume_alchemy_materials(player: Any, amount: int) -> Dict[str, int]:
 
 def ensure_equipment(player: Any) -> None:
     inventory = getattr(player, "equipment_inventory", None)
+    if isinstance(inventory, list):
+        list_inventory: Dict[str, int] = {}
+        for item_id in inventory:
+            if str(item_id):
+                list_inventory[str(item_id)] = list_inventory.get(str(item_id), 0) + 1
+        inventory = list_inventory
     if not isinstance(inventory, dict):
         inventory = {}
     clean_inventory: Dict[str, int] = {}
@@ -528,11 +662,41 @@ def ensure_equipment(player: Any) -> None:
     equipped = getattr(player, "equipped_items", None)
     if not isinstance(equipped, dict):
         equipped = {}
-    player.equipped_items = {slot: str(equipped.get(slot, "") or "") for slot in EQUIPMENT_SLOTS}
+    clean_equipped = {slot: "" for slot in EQUIPMENT_SLOTS}
+    for raw_slot, raw_item_id in equipped.items():
+        slot = normalize_equipment_slot(raw_slot)
+        if slot in clean_equipped and str(raw_item_id or ""):
+            clean_equipped[slot] = str(raw_item_id)
+    player.equipped_items = clean_equipped
+
+    history = getattr(player, "equipment_history", None)
+    if not isinstance(history, list):
+        history = []
+    clean_history: List[Dict[str, Any]] = []
+    for entry in history:
+        if not isinstance(entry, dict):
+            continue
+        item_id = str(entry.get("equipment_id") or entry.get("item_id") or "")
+        if not item_id:
+            continue
+        try:
+            count = int(entry.get("count", 1) or 1)
+        except (TypeError, ValueError):
+            count = 1
+        clean_history.append(
+            {
+                "action": str(entry.get("action") or "gain"),
+                "equipment_id": item_id,
+                "source": str(entry.get("source") or ""),
+                "count": max(1, count),
+            }
+        )
+    player.equipment_history = clean_history[-80:]
 
 
 def equipment_bonus(player: Any, attr: str) -> int:
     ensure_equipment(player)
+    attr = LEGACY_EFFECT_ALIASES.get(str(attr), str(attr))
     items = equipment_by_id()
     total = 0
     for item_id in player.equipped_items.values():
@@ -545,22 +709,38 @@ def equipment_bonus(player: Any, attr: str) -> int:
     return total
 
 
+def get_equipment_effects(equipment_id: str) -> Dict[str, int]:
+    item = get_equipment_by_id(str(equipment_id))
+    if not item:
+        return {}
+    effects = item.get("effects", {})
+    return dict(effects) if isinstance(effects, dict) else {}
+
+
 def equipment_effects(player: Any) -> Dict[str, int]:
     return {attr: equipment_bonus(player, attr) for attr in EQUIPMENT_ATTRS}
+
+
+def get_equipped_effects(player: Any) -> Dict[str, int]:
+    return equipment_effects(player)
+
+
+def calculate_equipment_total_effects(player: Any) -> Dict[str, int]:
+    return equipment_effects(player)
 
 
 def equipment_score(player: Any) -> int:
     effects = equipment_effects(player)
     score = (
-        effects["attack"]
-        + effects["defense"]
-        + effects["speed"]
-        + effects["physique"]
-        + effects["spiritual_power"]
-        + effects["dao_heart"]
-        + effects["divine_sense"]
-        - max(0, effects["exposure"])
-        - max(0, effects["heart_demon"])
+        effects["attack_bonus"]
+        + effects["defense_bonus"]
+        + effects["speed_bonus"]
+        + effects["dao_heart_bonus"]
+        + effects["divine_sense_bonus"]
+        + min(2, max(0, effects["cultivation_bonus"] + effects["alchemy_bonus"] + effects["stealth_bonus"]))
+        - max(0, effects["exposure_bonus"])
+        - max(0, effects["heart_demon_bonus"])
+        - max(0, effects["karma_bonus"])
     )
     return max(0, score)
 
@@ -570,14 +750,97 @@ def equipment_count(player: Any) -> int:
     return sum(player.equipment_inventory.values()) + sum(1 for item_id in player.equipped_items.values() if item_id)
 
 
+def equipment_slot_count(player: Any) -> int:
+    ensure_equipment(player)
+    return sum(1 for item_id in player.equipped_items.values() if item_id)
+
+
+def is_high_risk_equipment(item: Dict[str, Any] | None) -> bool:
+    if not item:
+        return False
+    effects = item.get("effects", {})
+    risk_tags = item.get("risk_tags", [])
+    risk_values: List[int] = []
+    if isinstance(effects, dict):
+        for attr in RISK_EQUIPMENT_ATTRS:
+            try:
+                risk_values.append(int(effects.get(attr, 0)))
+            except (TypeError, ValueError):
+                risk_values.append(0)
+    return (
+        str(item.get("quality")) == "cursed"
+        or bool(risk_tags)
+        or any(value > 0 for value in risk_values)
+    )
+
+
+def high_risk_equipment_count(player: Any) -> int:
+    ensure_equipment(player)
+    items = equipment_by_id()
+    total = 0
+    for item_id, count in player.equipment_inventory.items():
+        if is_high_risk_equipment(items.get(item_id)):
+            total += count
+    for item_id in player.equipped_items.values():
+        if item_id and is_high_risk_equipment(items.get(item_id)):
+            total += 1
+    return total
+
+
+def equipment_acquired_count(player: Any) -> int:
+    ensure_equipment(player)
+    total = 0
+    for entry in getattr(player, "equipment_history", []):
+        if str(entry.get("action")) in {"gain", "buy"}:
+            total += int(entry.get("count", 1))
+    return total
+
+
+def high_risk_equipment_acquired_count(player: Any) -> int:
+    ensure_equipment(player)
+    items = equipment_by_id()
+    total = 0
+    for entry in getattr(player, "equipment_history", []):
+        if str(entry.get("action")) in {"gain", "buy"} and is_high_risk_equipment(
+            items.get(str(entry.get("equipment_id")))
+        ):
+            total += int(entry.get("count", 1))
+    return total
+
+
+def format_equipment_effects(effects: Dict[str, int], show_zero: bool = False) -> str:
+    parts = []
+    for attr in EQUIPMENT_ATTRS:
+        value = int(effects.get(attr, 0))
+        if value or show_zero:
+            parts.append(f"{EQUIPMENT_ATTR_NAMES[attr]}{value:+d}")
+    return "、".join(parts) if parts else "无"
+
+
+def equipment_slot_summary(player: Any) -> str:
+    ensure_equipment(player)
+    items = equipment_by_id()
+    parts = []
+    for slot in EQUIPMENT_SLOTS:
+        item = items.get(player.equipped_items.get(slot, ""))
+        parts.append(f"{SLOT_NAMES[slot]}:{item.get('name') if item else '未装备'}")
+    return "｜".join(parts)
+
+
 def equipment_status_text(player: Any) -> str:
     ensure_equipment(player)
     items = equipment_by_id()
     lines = ["当前装备："]
     for slot in EQUIPMENT_SLOTS:
         item = items.get(player.equipped_items.get(slot, ""))
-        name = str(item.get("name")) if item else "未装备"
-        lines.append(f"{SLOT_NAMES[slot]}：{name}")
+        if item:
+            effects = item.get("effects", {})
+            quality = QUALITY_NAMES.get(str(item.get("quality")), str(item.get("quality", "")))
+            lines.append(
+                f"{SLOT_NAMES[slot]}：{item.get('name')}｜{quality}｜{format_equipment_effects(effects)}"
+            )
+        else:
+            lines.append(f"{SLOT_NAMES[slot]}：当前未装备")
     if player.equipment_inventory:
         inv_text = []
         for item_id, count in player.equipment_inventory.items():
@@ -586,56 +849,113 @@ def equipment_status_text(player: Any) -> str:
         lines.append("背包装备：" + "、".join(inv_text))
     else:
         lines.append("背包装备：无")
-    effects = equipment_effects(player)
-    effect_text = "、".join(
-        f"{EQUIPMENT_ATTR_NAMES[attr]}{value:+d}" for attr, value in effects.items() if value
-    )
-    lines.append("装备总加成：" + (effect_text if effect_text else "无"))
+    lines.append("装备总加成：" + format_equipment_effects(equipment_effects(player)))
     return "\n".join(lines)
 
 
-def equipment_shop_text() -> str:
-    lines = ["轻量装备摊："]
-    for index, item in enumerate(load_equipment(), start=1):
+def equipment_shop_entries(source_id: str = "market_basic") -> List[Tuple[Dict[str, Any], int, int]]:
+    items = equipment_by_id()
+    source = load_equipment_sources().get(source_id, {})
+    entries = source.get("items", []) if isinstance(source, dict) else []
+    result: List[Tuple[Dict[str, Any], int, int]] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        item = items.get(str(entry.get("equipment_id")))
+        if not item:
+            continue
+        try:
+            price = int(entry.get("price", item.get("price", 0)))
+            weight = int(entry.get("weight", 1))
+        except (TypeError, ValueError):
+            continue
+        result.append((item, max(0, price), max(1, weight)))
+    return result
+
+
+def equipment_shop_text(source_id: str = "market_basic") -> str:
+    source = load_equipment_sources().get(source_id, {})
+    source_name = str(source.get("name", "轻量装备摊")) if isinstance(source, dict) else "轻量装备摊"
+    lines = [source_name + "："]
+    for index, (item, price, _) in enumerate(equipment_shop_entries(source_id), start=1):
         effects = item.get("effects", {})
-        effect_text = ", ".join(
-            f"{EQUIPMENT_ATTR_NAMES.get(attr, attr)}{int(value):+d}"
-            for attr, value in effects.items()
-        )
+        quality = QUALITY_NAMES.get(str(item.get("quality")), str(item.get("quality", "")))
         lines.append(
             f"{index}. {item.get('name')}｜{SLOT_NAMES.get(str(item.get('slot')), item.get('slot'))}｜"
-            f"{int(item.get('price', 0))}灵石｜{effect_text}"
+            f"{quality}｜{price}灵石｜{format_equipment_effects(effects)}"
         )
     return "\n".join(lines)
 
 
-def buy_equipment(player: Any, index: int) -> str:
-    equipment = load_equipment()
-    if index < 1 or index > len(equipment):
+def _record_equipment_history(player: Any, action: str, equipment_id: str, source: str, count: int) -> None:
+    history = getattr(player, "equipment_history", None)
+    if not isinstance(history, list):
+        history = []
+    history.append(
+        {
+            "action": action,
+            "equipment_id": str(equipment_id),
+            "source": str(source or ""),
+            "count": max(1, int(count)),
+        }
+    )
+    player.equipment_history = history[-80:]
+
+
+def add_equipment_to_inventory(player: Any, equipment_id: str, source: str | None = None, count: int = 1) -> str:
+    if count <= 0:
+        return ""
+    item = equipment_by_id().get(str(equipment_id))
+    if not item:
+        return ""
+    ensure_equipment(player)
+    item_id = str(item.get("item_id"))
+    player.equipment_inventory[item_id] = int(player.equipment_inventory.get(item_id, 0)) + count
+    _record_equipment_history(player, "gain", item_id, source or "", count)
+    player.clamp()
+    suffix = f"x{count}" if count > 1 else ""
+    return f"{item.get('name')}{suffix}"
+
+
+def buy_equipment(player: Any, index: int, source_id: str = "market_basic") -> str:
+    entries = equipment_shop_entries(source_id)
+    if index < 1 or index > len(entries):
         return "没有这件装备。"
-    item = equipment[index - 1]
-    price = int(item.get("price", 0))
+    item, price, _ = entries[index - 1]
     if player.spirit_stones < price:
         return f"灵石不足，买不起{item.get('name')}。"
     player.spirit_stones -= price
     ensure_equipment(player)
     item_id = str(item.get("item_id"))
     player.equipment_inventory[item_id] = int(player.equipment_inventory.get(item_id, 0)) + 1
+    _record_equipment_history(player, "buy", item_id, source_id, 1)
     player.clamp()
     return f"你买下{item.get('name')}，花费灵石{price}。"
 
 
 def grant_equipment(player: Any, item_id: str, count: int = 1) -> str:
-    if count <= 0:
+    return add_equipment_to_inventory(player, item_id, source="direct_grant", count=count)
+
+
+def roll_equipment_from_source(source_id: str) -> str:
+    entries = equipment_shop_entries(source_id)
+    if not entries:
         return ""
-    item = equipment_by_id().get(item_id)
-    if not item:
+    total = sum(weight for _, _, weight in entries)
+    roll = random.randint(1, total)
+    cursor = 0
+    for item, _, weight in entries:
+        cursor += weight
+        if roll <= cursor:
+            return str(item.get("item_id"))
+    return str(entries[-1][0].get("item_id"))
+
+
+def grant_equipment_from_source(player: Any, source_id: str) -> str:
+    item_id = roll_equipment_from_source(source_id)
+    if not item_id:
         return ""
-    ensure_equipment(player)
-    player.equipment_inventory[item_id] = int(player.equipment_inventory.get(item_id, 0)) + count
-    player.clamp()
-    suffix = f"x{count}" if count > 1 else ""
-    return f"{item.get('name')}{suffix}"
+    return add_equipment_to_inventory(player, item_id, source=source_id)
 
 
 def inventory_equipment_choices(player: Any) -> List[Tuple[str, Dict[str, Any]]]:
@@ -654,43 +974,113 @@ def equipment_inventory_text(player: Any) -> str:
     if not choices:
         return "背包中没有可装备的装备。"
     lines = ["可装备物品："]
-    for index, (_, item) in enumerate(choices, start=1):
-        lines.append(f"{index}. {item.get('name')}｜{SLOT_NAMES.get(str(item.get('slot')), item.get('slot'))}")
-    return "\n".join(lines)
-
-
-def format_equipment_comparison(player: Any, item_id: str) -> str:
-    ensure_equipment(player)
-    items = equipment_by_id()
-    candidate = items.get(item_id)
-    if not candidate:
-        return "装备不存在。"
-    slot = str(candidate.get("slot", ""))
-    current = items.get(player.equipped_items.get(slot, ""))
-    current_effects = current.get("effects", {}) if current else {}
-    candidate_effects = candidate.get("effects", {})
-    lines = [
-        f"装备对比：{SLOT_NAMES.get(slot, slot)}",
-        f"当前装备：{current.get('name') if current else '未装备'}",
-        f"选择装备：{candidate.get('name')}",
-    ]
-    for attr in EQUIPMENT_ATTRS:
-        current_value = int(current_effects.get(attr, 0)) if isinstance(current_effects, dict) else 0
-        candidate_value = int(candidate_effects.get(attr, 0)) if isinstance(candidate_effects, dict) else 0
-        diff = candidate_value - current_value
+    for index, (item_id, item) in enumerate(choices, start=1):
+        effects = item.get("effects", {})
+        quality = QUALITY_NAMES.get(str(item.get("quality")), str(item.get("quality", "")))
+        count = int(player.equipment_inventory.get(item_id, 0))
         lines.append(
-            f"{EQUIPMENT_ATTR_NAMES[attr]} {current_value:+d} -> {candidate_value:+d}（变化{diff:+d}）"
+            f"{index}. {item.get('name')}x{count}｜{SLOT_NAMES.get(str(item.get('slot')), item.get('slot'))}｜"
+            f"{quality}｜{format_equipment_effects(effects)}"
         )
     return "\n".join(lines)
 
 
-def equip_item(player: Any, choice_index: int) -> str:
+def _describe_equipment_line(item: Dict[str, Any] | None) -> str:
+    if not item:
+        return "当前未装备"
+    quality = QUALITY_NAMES.get(str(item.get("quality")), str(item.get("quality", "")))
+    return (
+        f"{item.get('name')}｜{SLOT_NAMES.get(str(item.get('slot')), item.get('slot'))}｜"
+        f"{quality}｜{format_equipment_effects(item.get('effects', {}))}"
+    )
+
+
+def _change_label(attr: str, diff: int) -> str:
+    if diff == 0:
+        return "无变化"
+    if attr in RISK_EQUIPMENT_ATTRS:
+        return f"风险上升 {diff:+d}" if diff > 0 else f"风险下降 {diff:+d}"
+    return f"提升 {diff:+d}" if diff > 0 else f"降低 {diff:+d}"
+
+
+def compare_equipment(player: Any, candidate_equipment_id: str) -> Dict[str, Any]:
+    ensure_equipment(player)
+    items = equipment_by_id()
+    candidate = items.get(str(candidate_equipment_id))
+    if not candidate:
+        return {"error": "装备不存在。"}
+    slot = str(candidate.get("slot", ""))
+    current = items.get(player.equipped_items.get(slot, ""))
+    current_effects = current.get("effects", {}) if current else {}
+    candidate_effects = candidate.get("effects", {})
+    changes = {}
+    for attr in EQUIPMENT_ATTRS:
+        current_value = int(current_effects.get(attr, 0)) if isinstance(current_effects, dict) else 0
+        candidate_value = int(candidate_effects.get(attr, 0)) if isinstance(candidate_effects, dict) else 0
+        changes[attr] = {
+            "current": current_value,
+            "candidate": candidate_value,
+            "diff": candidate_value - current_value,
+        }
+    return {"slot": slot, "current": current, "candidate": candidate, "changes": changes}
+
+
+def format_equipment_compare(player: Any, candidate_equipment_id: str) -> str:
+    comparison = compare_equipment(player, candidate_equipment_id)
+    if comparison.get("error"):
+        return str(comparison["error"])
+    slot = str(comparison["slot"])
+    current = comparison.get("current")
+    candidate = comparison.get("candidate")
+    lines = [
+        f"装备对比：{SLOT_NAMES.get(slot, slot)}",
+        "当前装备：",
+        f"  {_describe_equipment_line(current if isinstance(current, dict) else None)}",
+        "候选装备：",
+        f"  {_describe_equipment_line(candidate if isinstance(candidate, dict) else None)}",
+        "属性变化：",
+    ]
+    changes = comparison.get("changes", {})
+    if not isinstance(changes, dict):
+        changes = {}
+    for attr, change in changes.items():
+        if not isinstance(change, dict):
+            continue
+        current_value = int(change.get("current", 0))
+        candidate_value = int(change.get("candidate", 0))
+        diff = int(change.get("diff", 0))
+        lines.append(
+            f"  {EQUIPMENT_ATTR_NAMES[attr]}：{current_value:+d} -> {candidate_value:+d}（{_change_label(attr, diff)}）"
+        )
+    return "\n".join(lines)
+
+
+def format_equipment_comparison(player: Any, item_id: str) -> str:
+    return format_equipment_compare(player, item_id)
+
+
+def equip_item(player: Any, equipment_id_or_index: Any, include_comparison: bool = True) -> str:
     choices = inventory_equipment_choices(player)
-    if choice_index < 1 or choice_index > len(choices):
-        return "没有选择装备。"
-    item_id, item = choices[choice_index - 1]
+    item_id = ""
+    item: Dict[str, Any] | None = None
+    if isinstance(equipment_id_or_index, int):
+        if equipment_id_or_index < 1 or equipment_id_or_index > len(choices):
+            return "没有选择装备。"
+        item_id, item = choices[equipment_id_or_index - 1]
+    else:
+        item_id = str(equipment_id_or_index)
+        item = equipment_by_id().get(item_id)
+        if not item:
+            return "装备不存在。"
+        if int(getattr(player, "equipment_inventory", {}).get(item_id, 0)) <= 0:
+            return "背包中没有这件装备。"
+    if item is None:
+        return "装备不存在。"
     slot = str(item.get("slot"))
-    comparison = format_equipment_comparison(player, item_id)
+    current_id = player.equipped_items.get(slot, "")
+    if current_id == item_id:
+        return f"你已经装备着{item.get('name')}。"
+    comparison = format_equipment_compare(player, item_id)
     current_id = player.equipped_items.get(slot, "")
     player.equipment_inventory[item_id] -= 1
     if player.equipment_inventory[item_id] <= 0:
@@ -698,5 +1088,23 @@ def equip_item(player: Any, choice_index: int) -> str:
     if current_id:
         player.equipment_inventory[current_id] = int(player.equipment_inventory.get(current_id, 0)) + 1
     player.equipped_items[slot] = item_id
+    _record_equipment_history(player, "equip", item_id, slot, 1)
     player.clamp()
-    return comparison + f"\n已装备：{item.get('name')}。"
+    prefix = comparison + "\n" if include_comparison else ""
+    return prefix + f"已装备：{item.get('name')}。"
+
+
+def unequip_slot(player: Any, slot: str) -> str:
+    ensure_equipment(player)
+    normalized_slot = normalize_equipment_slot(slot)
+    if normalized_slot not in EQUIPMENT_SLOTS:
+        return "没有这个装备槽位。"
+    item_id = player.equipped_items.get(normalized_slot, "")
+    if not item_id:
+        return f"{SLOT_NAMES[normalized_slot]}当前未装备。"
+    item = equipment_by_id().get(item_id)
+    player.equipped_items[normalized_slot] = ""
+    player.equipment_inventory[item_id] = int(player.equipment_inventory.get(item_id, 0)) + 1
+    _record_equipment_history(player, "unequip", item_id, normalized_slot, 1)
+    player.clamp()
+    return f"已卸下{SLOT_NAMES[normalized_slot]}：{item.get('name') if item else item_id}。"

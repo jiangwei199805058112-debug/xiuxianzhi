@@ -72,15 +72,16 @@ def run_tournament(player: Player) -> Dict[str, object]:
     burst_mind = int(burst.get("mind", 0))
     burst_trial = int(burst.get("trial", 0))
     burst_combat = int(burst.get("combat", 0))
-    attack = player.attack + equipment_bonus(player, "attack")
-    defense = player.defense + equipment_bonus(player, "defense")
-    speed = player.speed + equipment_bonus(player, "speed")
-    physique = player.physique + equipment_bonus(player, "physique")
-    mp = player.mp + equipment_bonus(player, "spiritual_power")
-    dao_heart = player.dao_heart + equipment_bonus(player, "dao_heart")
-    divine_sense = player.divine_sense + equipment_bonus(player, "divine_sense")
-    exposure = max(0, player.exposure + equipment_bonus(player, "exposure"))
-    heart_demon = max(0, player.heart_demon + equipment_bonus(player, "heart_demon"))
+    attack = player.attack + equipment_bonus(player, "attack_bonus")
+    defense = player.defense + equipment_bonus(player, "defense_bonus")
+    speed = player.speed + equipment_bonus(player, "speed_bonus")
+    physique = player.physique
+    mp = player.mp
+    dao_heart = player.dao_heart + equipment_bonus(player, "dao_heart_bonus")
+    divine_sense = player.divine_sense + equipment_bonus(player, "divine_sense_bonus")
+    exposure = max(0, player.exposure + equipment_bonus(player, "exposure_bonus"))
+    heart_demon = max(0, player.heart_demon + equipment_bonus(player, "heart_demon_bonus"))
+    karma = max(0, player.karma + equipment_bonus(player, "karma_bonus"))
     alchemy_reserve_bonus = min(
         9,
         player.pills
@@ -98,7 +99,7 @@ def run_tournament(player: Player) -> Dict[str, object]:
         + player.righteous_reputation // 8
         - heart_demon // 3
         - player.demonic_qi // 4
-        - player.karma // 4
+        - karma // 4
         - max(0, exposure - 50) // 8
         + mind_intel_bonus
         + theft_mind
@@ -119,7 +120,7 @@ def run_tournament(player: Player) -> Dict[str, object]:
         + alchemy_reserve_bonus
         - exposure // 4
         - heart_demon // 8
-        - player.karma // 8
+        - karma // 8
         + trial_intel_bonus
         + theft_trial
         + growth_trial
@@ -139,7 +140,7 @@ def run_tournament(player: Player) -> Dict[str, object]:
         + talisman_bonus
         - heart_demon // 5
         - player.demonic_qi // 3
-        - player.karma // 3
+        - karma // 3
         - max(0, exposure - 35) // 6
         + combat_intel_bonus
         + theft_combat
@@ -165,6 +166,8 @@ def run_tournament(player: Player) -> Dict[str, object]:
         flags.append("魔影伏身")
     if player.heart_demon >= 75:
         flags.append("心魔暗结")
+    if equipment_bonus(player, "exposure_bonus") > 1 or equipment_bonus(player, "karma_bonus") > 1:
+        flags.append("旧器留痕")
     if player.average_affection() >= 35:
         flags.append("旁支有人")
     if player.intelligence >= 20:
@@ -194,7 +197,7 @@ def run_tournament(player: Player) -> Dict[str, object]:
         reward_item = grant_equipment(player, "sense_charm")
         reward_text = f"大比奖励：族中赐下{reward_item}。" if reward_item else ""
     elif top_ten:
-        reward_item = grant_equipment(player, "patched_robe")
+        reward_item = grant_equipment(player, "shen_training_robe")
         reward_text = f"大比奖励：族中赐下{reward_item}。" if reward_item else ""
 
     player.ending_flags = flags

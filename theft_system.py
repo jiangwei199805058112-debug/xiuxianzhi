@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 from typing import Any, Dict, List
 
-from cultivation_assets import equipment_bonus, grant_equipment
+from cultivation_assets import equipment_bonus, grant_equipment, grant_equipment_from_source
 from growth_system import gain_mastery, has_insight
 
 
@@ -349,9 +349,10 @@ def calculate_theft_success_rate(player: Any, target_type: str, theft_type: str)
     low, high = cfg["cap"]  # type: ignore[misc]
     skill = _get_int(player, "theft_skill")
     stealth_bonus = (
-        max(0, equipment_bonus(player, "speed")) * 2
-        + max(0, equipment_bonus(player, "divine_sense")) * 2
-        + max(0, equipment_bonus(player, "dao_heart"))
+        max(0, equipment_bonus(player, "speed_bonus")) * 2
+        + max(0, equipment_bonus(player, "divine_sense_bonus")) * 2
+        + max(0, equipment_bonus(player, "dao_heart_bonus"))
+        + max(0, equipment_bonus(player, "stealth_bonus")) * 2
     )
     realm_advantage = (_get_int(player, "realm_level", 1) - int(cfg.get("target_level", 1))) * 3
     rate = (
@@ -419,7 +420,7 @@ def _apply_success_effect(player: Any, theft_type: str) -> str:
                 return f"{_line(SUCCESS_PREFIXES, theft_type)}得火弹符+1。"
             player.talisman_guard += 1
             return f"{_line(SUCCESS_PREFIXES, theft_type)}得护身符+1。"
-        item_name = grant_equipment(player, random.choice(["cloth_boots", "calm_charm", "iron_sword"]))
+        item_name = grant_equipment_from_source(player, "theft_gray_equipment")
         return f"{_line(SUCCESS_PREFIXES, theft_type)}翻得一件旧装备：{item_name}。" if item_name else f"{_line(SUCCESS_PREFIXES, theft_type)}得些可用杂物。"
 
     if theft_type == "intel":
@@ -481,7 +482,7 @@ def _apply_success_effect(player: Any, theft_type: str) -> str:
         if reward == "intel":
             player.intelligence += 4
             return f"{_line(SUCCESS_PREFIXES, theft_type)}情报值+4，但原主隐约记住了你。"
-        item_name = grant_equipment(player, random.choice(["greenwood_sword", "sense_charm", "quiet_robe"]))
+        item_name = grant_equipment_from_source(player, "theft_gray_equipment")
         return f"{_line(SUCCESS_PREFIXES, theft_type)}得{item_name}，但原主隐约记住了你。"
 
     if theft_type == "fate":

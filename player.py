@@ -14,6 +14,7 @@ from cultivation_assets import (
     equipment_count,
     equipment_effects,
     equipment_score,
+    equipment_slot_summary,
     ensure_equipment,
     ensure_spirit_fields,
     grant_starter_seeds,
@@ -159,6 +160,7 @@ class Player:
     alchemy_furnace_id: str = "none"
     equipment_inventory: Dict[str, int] = field(default_factory=dict)
     equipped_items: Dict[str, str] = field(default_factory=lambda: {slot: "" for slot in EQUIPMENT_SLOTS})
+    equipment_history: List[Dict[str, Any]] = field(default_factory=list)
     tutorial_flags: List[str] = field(default_factory=list)
     total_actions: int = 0
     ending_flags: List[str] = field(default_factory=list)
@@ -473,7 +475,7 @@ class Player:
             f"符箓：护身符{self.talisman_guard}｜火弹符{self.talisman_fire}｜避火符{self.talisman_avoid_fire}｜破甲符{self.talisman_break_armor}｜黑市线索{self.black_market_clue}\n"
             f"资源：普通灵草{self.herbs}｜十年份灵草{self.aged_herbs_10}｜三十年份灵草{self.aged_herbs_30}｜灵石{self.spirit_stones}｜丹药{self.pills}｜家族贡献{self.contribution}\n"
             f"经营：灵田{len(self.spirit_fields)}块｜灵田收获{self.spirit_field_harvest_count}次｜丹炉{furnace.get('name', '无专用丹炉')}\n"
-            f"装备：持有{equipment_count(self)}件｜评分{equipment_score(self)}｜加成{equipment_effect_text}\n"
+            f"装备：{equipment_slot_summary(self)}｜持有{equipment_count(self)}件｜评分{equipment_score(self)}｜加成{equipment_effect_text}\n"
             f"根基：根基{self.foundation}｜博学度{calculate_breadth(self)}｜熟练总和{mastery_total(self)}｜突破{self.breakthrough_count}次｜待选感悟{self.breakthrough_insight_pending}\n"
             f"熟练：{mastery_text}\n"
             f"融会：{len(self.unlocked_insights)}项｜{insight_text}｜厚积薄发{'已触发' if self.foundation_burst_triggered else '未触发'}\n"
@@ -601,6 +603,7 @@ class Player:
             "alchemy_furnace_id": self.alchemy_furnace_id,
             "equipment_inventory": self.equipment_inventory,
             "equipped_items": self.equipped_items,
+            "equipment_history": self.equipment_history,
             "tutorial_flags": self.tutorial_flags,
             "total_actions": self.total_actions,
             "ending_flags": self.ending_flags,
@@ -639,6 +642,18 @@ class Player:
         realm_level = _int_from(data, "realm_level", inferred_realm)
         max_hp = _int_from(data, "max_hp", 40 + max(0, realm_level - 1) * 8)
         combat_exp = _int_from(data, "combat_exp", 3)
+        raw_equipment_inventory = data.get("equipment_inventory") or {}
+        if isinstance(raw_equipment_inventory, list):
+            equipment_inventory: Dict[str, int] = {}
+            for item_id in raw_equipment_inventory:
+                if str(item_id):
+                    equipment_inventory[str(item_id)] = equipment_inventory.get(str(item_id), 0) + 1
+        elif isinstance(raw_equipment_inventory, dict):
+            equipment_inventory = dict(raw_equipment_inventory)
+        else:
+            equipment_inventory = {}
+        raw_equipped_items = data.get("equipped_items") or {}
+        equipped_items = dict(raw_equipped_items) if isinstance(raw_equipped_items, dict) else {}
         player = cls(
             name=str(data.get("name", "沈无名")),
             spirit_root=str(data.get("spirit_root", "五行杂灵根")),
@@ -751,8 +766,9 @@ class Player:
             spirit_fields=list(data.get("spirit_fields") or [empty_field(1)]),
             spirit_field_harvest_count=_int_from(data, "spirit_field_harvest_count", 0),
             alchemy_furnace_id=str(data.get("alchemy_furnace_id", "none") or "none"),
-            equipment_inventory=dict(data.get("equipment_inventory") or {}),
-            equipped_items=dict(data.get("equipped_items") or {}),
+            equipment_inventory=equipment_inventory,
+            equipped_items=equipped_items,
+            equipment_history=list(data.get("equipment_history") or []),
             tutorial_flags=list(data.get("tutorial_flags") or []),
             total_actions=_int_from(data, "total_actions", 0),
             ending_flags=list(data.get("ending_flags", [])),

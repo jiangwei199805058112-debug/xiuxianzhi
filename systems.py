@@ -14,17 +14,23 @@ from cultivation_assets import (
     consume_alchemy_materials,
     current_furnace,
     equip_item,
+    equipment_bonus,
+    equipment_effects,
     equipment_inventory_text,
     equipment_shop_text,
     equipment_status_text,
+    format_equipment_compare,
+    format_equipment_effects,
     field_status_text,
     furnace_shop_text,
     furnace_status_text,
-    grant_equipment,
+    grant_equipment_from_source,
     harvest_all_fields,
+    inventory_equipment_choices,
     material_total,
     one_click_plant,
     tend_all_fields,
+    unequip_slot,
     upgrade_spirit_field,
 )
 from data import ACTION_NAMES, ATTRIBUTE_NAMES, MARKET_GOODS, MARKET_PRICES, MONTHLY_EVENTS, NPCS
@@ -145,6 +151,8 @@ def _jade_bottle_text(player: Player) -> str:
 def action_cultivate(player: Player) -> str:
     before_realm = player.realm_level
     gain = _roll(4, 7) + max(1, player.cultivation_speed // 2) + player.root_growth
+    equipment_cultivation_bonus = max(0, equipment_bonus(player, "cultivation_bonus"))
+    gain += min(1, equipment_cultivation_bonus)
     used_pill = False
     if player.pills > 0:
         player.pills -= 1
@@ -243,8 +251,7 @@ def action_gather_herbs(player: Player) -> str:
 
     equipment_text = ""
     if random.random() < 0.025:
-        item_id = random.choice(["calm_charm", "cloth_boots", "iron_sword"])
-        item_name = grant_equipment(player, item_id)
+        item_name = grant_equipment_from_source(player, "herb_mountain_low_chance")
         if item_name:
             equipment_text = f"返程时你在乱石间捡到一件旧物：{item_name}。"
 
@@ -266,7 +273,7 @@ def action_family_work(player: Player) -> str:
     player.npc_affection["沈怀安"] += 2
     equipment_text = ""
     if random.random() < 0.025:
-        item_name = grant_equipment(player, "patched_robe")
+        item_name = grant_equipment_from_source(player, "family_old_equipment")
         if item_name:
             equipment_text = f"一位族中长辈见你做事踏实，顺手赠你{item_name}。"
     growth_text = gain_mastery(player, "social_mastery", 4, foundation_gain=1)
@@ -462,6 +469,7 @@ def _alchemy_failure_text(furnace: Dict[str, object], severe: bool) -> str:
 def action_refine_pills(player: Player) -> str:
     furnace = current_furnace(player)
     success_bonus = int(furnace.get("success_bonus", 0))
+    success_bonus += min(1, max(0, equipment_bonus(player, "alchemy_bonus")))
     pill_bonus = int(furnace.get("pill_bonus", 0))
     heart_delta = int(furnace.get("heart_demon_delta", 0))
     exposure_delta = int(furnace.get("exposure_delta", 0))
@@ -616,11 +624,16 @@ def action_visit_npc(player: Player) -> str:
     elif npc == "沈墨阳":
         player.intelligence += 2
         player.demonic_qi += 1
+    equipment_text = ""
+    if npc in {"沈若兰", "沈怀安", "沈霜"} and random.random() < 0.018:
+        item_name = grant_equipment_from_source(player, "family_old_equipment")
+        if item_name:
+            equipment_text = f"对方顺手替你寻来一件沈家旧物：{item_name}。"
     growth_parts = [gain_mastery(player, "social_mastery", 5, foundation_gain=1)]
     if npc in {"沈怀安", "沈霜", "沈墨阳"}:
         growth_parts.append(gain_mastery(player, "intel_mastery", 2))
     growth_text = " ".join(text for text in growth_parts if text)
-    return _append_growth(f"你寻机结交{npc}，好感提升{affection_gain}。", growth_text)
+    return _append_growth(f"你寻机结交{npc}，好感提升{affection_gain}。{equipment_text}", growth_text)
 
 
 def action_spell_training(player: Player) -> str:
@@ -811,26 +824,51 @@ def _manage_furnace(player: Player) -> str:
 
 
 def _manage_equipment(player: Player) -> str:
-    print("查看/更换装备：")
+    print("装备：")
     print("1. 查看当前装备")
-    print("2. 购买轻量装备")
+    print("2. 查看装备背包")
     print("3. 装备/替换装备")
+    print("4. 卸下装备")
+    print("5. 查看装备总加成")
+    print("6. 坊市挑选基础装备")
     print("0. 返回")
     choice = _read_choice("请选择装备操作：")
 
     if choice == "1":
         return equipment_status_text(player)
     if choice == "2":
+        return equipment_inventory_text(player)
+    if choice == "3":
+        print(equipment_inventory_text(player))
+        selected = _read_choice("请选择装备编号：")
+        if not selected.isdigit():
+            return "你没有更换装备。"
+        choices = inventory_equipment_choices(player)
+        index = int(selected)
+        if index < 1 or index > len(choices):
+            return "没有选择装备。"
+        item_id, _ = choices[index - 1]
+        print(format_equipment_compare(player, item_id))
+        confirm = _read_choice("是否确认装备/替换？(Y/N)：").upper()
+        if confirm not in {"Y", "YES", "1", "确认"}:
+            return "你收回手，没有更换装备。"
+        record_monthly_action(player, "market")
+        return equip_item(player, index, include_comparison=False)
+    if choice == "4":
+        slot_labels = [("weapon", "武器"), ("robe", "法袍"), ("boots", "靴子"), ("talisman", "护符")]
+        for index, (_, label) in enumerate(slot_labels, start=1):
+            print(f"{index}. {label}")
+        selected = _read_choice("请选择卸下槽位：")
+        slot_map = {"1": "weapon", "2": "robe", "3": "boots", "4": "talisman"}
+        return unequip_slot(player, slot_map.get(selected, selected))
+    if choice == "5":
+        return "装备总加成：" + format_equipment_effects(equipment_effects(player))
+    if choice == "6":
         print(equipment_shop_text())
         selected = _read_choice("请选择购买装备：")
         result = buy_equipment(player, int(selected)) if selected.isdigit() else "你没有购买装备。"
         record_monthly_action(player, "market")
         return _append_growth(result, gain_mastery(player, "market_mastery", 2))
-    if choice == "3":
-        print(equipment_inventory_text(player))
-        selected = _read_choice("请选择装备编号：")
-        record_monthly_action(player, "market")
-        return equip_item(player, int(selected)) if selected.isdigit() else "你没有更换装备。"
     return "你没有更换装备。"
 
 
@@ -873,7 +911,7 @@ def action_preparation(player: Player) -> str:
     print("修炼准备：")
     print("1. 管理灵田")
     print("2. 查看/更换炼丹炉")
-    print("3. 查看/更换装备")
+    print("3. 装备")
     print("4. 盗术/旁门技艺")
     print("5. 突破感悟")
     print("6. 查看当前准备状态")

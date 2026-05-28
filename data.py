@@ -1,6 +1,6 @@
 """第一章《旁支入道》的静态数据。"""
 
-VERSION = "v0.1.28"
+VERSION = "v0.1.30"
 HEISHUI_MARKET_VERSION = "v1.1"
 CHAPTER_NAME = "旁支入道"
 FAMILY_NAME = "青岭沈家"

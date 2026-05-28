@@ -9,7 +9,15 @@ import io
 import random
 from typing import Dict, Iterable, List, Tuple
 
-from cultivation_assets import equipment_by_id, equipment_count, equipment_score, furnace_level
+from cultivation_assets import (
+    equipment_acquired_count,
+    equipment_count,
+    equipment_score,
+    equipment_shop_entries,
+    equipment_slot_count,
+    high_risk_equipment_acquired_count,
+    furnace_level,
+)
 from data import MARKET_GOODS, NPCS, TOTAL_ACTIONS, VERSION
 from growth_system import calculate_breadth, has_insight, mastery_total
 from heishui_market import ensure_market_state, load_config, shop_unlock_reason
@@ -190,6 +198,10 @@ class AutoInput:
             return self.choose_equipment_purchase()
         if "请选择装备编号" in prompt:
             return self.choose_equipment_to_wear()
+        if "是否确认装备" in prompt:
+            return "Y"
+        if "请选择卸下槽位" in prompt:
+            return "0"
         if "请选择商品" in prompt:
             return self.choose_market_good()
         if "请选择出售项" in prompt:
@@ -305,10 +317,12 @@ class AutoInput:
         return "1"
 
     def choose_equipment_mode(self) -> str:
+        if self.action_token == "8_equip" and self.player.equipment_inventory:
+            return "3"
         if self.player.equipment_inventory and random.random() < 0.55:
             return "3"
-        if self.player.spirit_stones >= 8:
-            return "2"
+        if self.player.spirit_stones >= 12:
+            return "6"
         return "1"
 
     def choose_furnace(self) -> str:
@@ -329,10 +343,8 @@ class AutoInput:
         return "1"
 
     def choose_equipment_purchase(self) -> str:
-        items = list(equipment_by_id().values())
         candidates: List[Tuple[str, int]] = []
-        for index, item in enumerate(items, start=1):
-            price = int(item.get("price", 0))
+        for index, (item, price, _) in enumerate(equipment_shop_entries("market_basic"), start=1):
             item_id = str(item.get("item_id"))
             slot = str(item.get("slot"))
             already_has = int(self.player.equipment_inventory.get(item_id, 0)) > 0
@@ -418,6 +430,19 @@ class AutoInput:
             return "1"
         return "0"
 
+    def has_affordable_equipment(self) -> bool:
+        for item, price, _ in equipment_shop_entries("market_basic"):
+            item_id = str(item.get("item_id"))
+            slot = str(item.get("slot"))
+            if self.player.spirit_stones < price:
+                continue
+            if int(self.player.equipment_inventory.get(item_id, 0)) > 0:
+                continue
+            if self.player.equipped_items.get(slot) == item_id:
+                continue
+            return True
+        return False
+
     def choose_market_mode(self) -> str:
         if self.route_name == "随心游玩流":
             return self.choose_casual_market_mode()
@@ -446,6 +471,9 @@ class AutoInput:
         if self.route_name == "厚积薄发流":
             return "F" if random.random() < 0.70 else "C"
         if self.route_name in {"坊市符箓流", "均衡流"}:
+            equip_chance = 0.24 if self.route_name == "坊市符箓流" else 0.12
+            if self.has_affordable_equipment() and random.random() < equip_chance:
+                return "E"
             return "A" if self.choose_market_good() != "0" else "C"
         return "C"
 
@@ -466,6 +494,8 @@ class AutoInput:
             return "B"
 
         self.target_market_good = self.choose_casual_market_good()
+        if self.has_affordable_equipment() and random.random() < 0.10:
+            return "E"
         if self.target_market_good != "0" and random.random() < self.casual_buy_chance():
             return "A"
         if random.random() < 0.55:
@@ -823,7 +853,19 @@ def choose_route_action(route: Dict[str, object], player: Player) -> str:
     if player.breakthrough_insight_pending > 0:
         return "8_insight"
 
-    if str(route["name"]) == "厚积薄发流":
+    route_name = str(route["name"])
+    if player.equipment_inventory and equipment_slot_count(player) < 4:
+        equip_chance = {
+            "坊市符箓流": 0.18,
+            "黑水投机流": 0.12,
+            "盗术投机流": 0.14,
+            "随心游玩流": 0.10,
+            "均衡流": 0.10,
+        }.get(route_name, 0.05)
+        if random.random() < equip_chance:
+            return "8_equip"
+
+    if route_name == "厚积薄发流":
         if player.foundation < 82 and random.random() < 0.32:
             return weighted_choice([("5", 35), ("8_field", 30), ("legacy_meditate", 20), ("1", 15)])
         needs = [
@@ -843,7 +885,7 @@ def choose_route_action(route: Dict[str, object], player: Player) -> str:
         if player.foundation < 88 and random.random() < 0.34:
             return weighted_choice([("5", 35), ("8_field", 30), ("legacy_meditate", 20), ("1", 15)])
 
-    if str(route["name"]) == "盗术投机流":
+    if route_name == "盗术投机流":
         theft_risk = (
             player.exposure >= 50
             or player.karma >= 35
@@ -929,7 +971,7 @@ def choose_route_action(route: Dict[str, object], player: Player) -> str:
             high_weights.append(("8_theft_high", 1))
         return weighted_choice(high_weights)
 
-    if str(route["name"]) == "随心游玩流":
+    if route_name == "随心游玩流":
         high_risk = (
             player.exposure >= 55
             or player.heart_demon >= 35
@@ -946,7 +988,7 @@ def choose_route_action(route: Dict[str, object], player: Player) -> str:
             return "legacy_meditate"
 
     action = weighted_choice(route["weights"])  # type: ignore[arg-type]
-    if str(route["name"]) == "随心游玩流" and high_risk and action == "4_heishui" and random.random() < 0.65:
+    if route_name == "随心游玩流" and high_risk and action == "4_heishui" and random.random() < 0.65:
         return "legacy_meditate" if random.random() < 0.60 else "4_normal"
     if action == "6" and not player.has_soul_banner:
         return "2" if random.random() < 0.65 else "1"
@@ -1055,6 +1097,9 @@ def run_single_game(route: Dict[str, object], index: int) -> Dict[str, object]:
         "spirit_field_harvest_count": player.spirit_field_harvest_count,
         "furnace_level": furnace_level(player),
         "equipment_count": equipment_count(player),
+        "equipment_slot_count": equipment_slot_count(player),
+        "equipment_acquired_count": equipment_acquired_count(player),
+        "high_risk_equipment_count": high_risk_equipment_acquired_count(player),
         "equipment_score": equipment_score(player),
         "foundation": player.foundation,
         "breadth": calculate_breadth(player),
@@ -1144,6 +1189,9 @@ def summarize_route(route: Dict[str, object], runs: int) -> Dict[str, float | st
         "avg_spirit_field_harvest_count": average(records, "spirit_field_harvest_count"),
         "avg_furnace_level": average(records, "furnace_level"),
         "avg_equipment_count": average(records, "equipment_count"),
+        "avg_equipment_slot_count": average(records, "equipment_slot_count"),
+        "avg_equipment_acquired_count": average(records, "equipment_acquired_count"),
+        "avg_high_risk_equipment_count": average(records, "high_risk_equipment_count"),
         "avg_equipment_score": average(records, "equipment_score"),
         "avg_foundation": average(records, "foundation"),
         "avg_breadth": average(records, "breadth"),
@@ -1225,6 +1273,9 @@ def print_summary(summary: Dict[str, float | str | int]) -> None:
     print(f"平均灵田收获次数：{summary['avg_spirit_field_harvest_count']:.1f}")
     print(f"平均炼丹炉等级：{summary['avg_furnace_level']:.1f}")
     print(f"平均装备数量：{summary['avg_equipment_count']:.1f}")
+    print(f"平均装备槽位数：{summary['avg_equipment_slot_count']:.1f}")
+    print(f"平均获得装备次数：{summary['avg_equipment_acquired_count']:.1f}")
+    print(f"高风险装备次数：{summary['avg_high_risk_equipment_count']:.1f}")
     print(f"平均装备评分：{summary['avg_equipment_score']:.1f}")
     print(f"平均根基：{summary['avg_foundation']:.1f}")
     print(f"平均博学度：{summary['avg_breadth']:.1f}")
@@ -1389,6 +1440,8 @@ def evaluate(summaries: List[Dict[str, float | str | int]]) -> List[str]:
         burst_rate = float(summary.get("foundation_burst_rate", 0))
         wanfa_rate = float(summary.get("rate_万法互证", 0))
         avg_breadth = float(summary.get("avg_breadth", 0))
+        avg_equipment_count = float(summary.get("avg_equipment_count", 0))
+        avg_high_risk_equipment = float(summary.get("avg_high_risk_equipment_count", 0))
 
         if name != "随心游玩流" and top_ten < 0.30:
             notes.append(f"{name}：前十率低于30%，该路线可能过弱。")
@@ -1453,6 +1506,10 @@ def evaluate(summaries: List[Dict[str, float | str | int]]) -> List[str]:
                 notes.append("随心游玩流：黑水坊市对普通玩家惩罚过重。")
             if risk_events < 0.05:
                 notes.append("随心游玩流：随机玩家与黑水内容接触不足。")
+        if avg_equipment_count > 5.0:
+            notes.append(f"{name}：平均装备数量超过5件，装备获取可能过密。")
+        if name not in {"黑水投机流", "盗术投机流"} and avg_high_risk_equipment > 0.35:
+            notes.append(f"{name}：高风险装备出现偏多，普通路线被灰道装备污染。")
 
     if all(float(summary.get("avg_breadth", 0)) >= 6 for summary in summaries) and all(
         float(summary["top_ten_rate"]) > 0.75 for summary in summaries

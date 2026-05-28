@@ -1,0 +1,214 @@
+[
+  {
+    "id": "wooden_sword",
+    "item_id": "wooden_sword",
+    "name": "粗劣木剑",
+    "slot": "weapon",
+    "quality": "common",
+    "price": 16,
+    "description": "木纹粗糙，只适合练基础剑势。",
+    "effects": {
+      "attack_bonus": 1
+    },
+    "tags": ["market", "starter"],
+    "risk_tags": []
+  },
+  {
+    "id": "iron_sword",
+    "item_id": "iron_sword",
+    "name": "锈铁剑",
+    "slot": "weapon",
+    "quality": "common",
+    "price": 22,
+    "description": "剑身已有锈痕，但刃口还算齐整。",
+    "effects": {
+      "attack_bonus": 2
+    },
+    "tags": ["market", "starter", "legacy_id"],
+    "risk_tags": []
+  },
+  {
+    "id": "greenwood_sword",
+    "item_id": "greenwood_sword",
+    "name": "青木短剑",
+    "slot": "weapon",
+    "quality": "reward",
+    "price": 0,
+    "description": "族中小比常见赏物，灵纹清浅，斗法时更顺手。",
+    "effects": {
+      "attack_bonus": 3,
+      "divine_sense_bonus": 1,
+      "exposure_bonus": 1
+    },
+    "tags": ["reward", "legacy_id"],
+    "risk_tags": []
+  },
+  {
+    "id": "blackwater_dagger",
+    "item_id": "blackwater_dagger",
+    "name": "黑水短刃",
+    "slot": "weapon",
+    "quality": "cursed",
+    "price": 0,
+    "description": "刃口泛着暗光，适合阴影中出手，也容易留下来路痕迹。",
+    "effects": {
+      "attack_bonus": 5,
+      "stealth_bonus": 2,
+      "exposure_bonus": 2,
+      "karma_bonus": 2
+    },
+    "tags": ["heishui", "theft"],
+    "risk_tags": ["trace", "karma"]
+  },
+  {
+    "id": "patched_robe",
+    "item_id": "patched_robe",
+    "name": "旧布袍",
+    "slot": "robe",
+    "quality": "common",
+    "price": 14,
+    "description": "修补过的入门法袍，能挡些斗法余波。",
+    "effects": {
+      "defense_bonus": 1
+    },
+    "tags": ["market", "family", "legacy_id"],
+    "risk_tags": []
+  },
+  {
+    "id": "shen_training_robe",
+    "item_id": "shen_training_robe",
+    "name": "沈家练功袍",
+    "slot": "robe",
+    "quality": "uncommon",
+    "price": 28,
+    "description": "沈家外门制式练功袍，重在稳妥耐用。",
+    "effects": {
+      "defense_bonus": 2,
+      "dao_heart_bonus": 1
+    },
+    "tags": ["market", "family"],
+    "risk_tags": []
+  },
+  {
+    "id": "quiet_robe",
+    "item_id": "quiet_robe",
+    "name": "玄色遮息袍",
+    "slot": "robe",
+    "quality": "rare",
+    "price": 0,
+    "description": "能略微收敛气息，但布线来历不好查。",
+    "effects": {
+      "defense_bonus": 1,
+      "divine_sense_bonus": 1,
+      "stealth_bonus": 1,
+      "exposure_bonus": 1
+    },
+    "tags": ["heishui", "theft", "legacy_id"],
+    "risk_tags": ["trace"]
+  },
+  {
+    "id": "cloth_boots",
+    "item_id": "cloth_boots",
+    "name": "旧布靴",
+    "slot": "boots",
+    "quality": "common",
+    "price": 10,
+    "description": "旧而不破，山路行走更省力。",
+    "effects": {
+      "speed_bonus": 1
+    },
+    "tags": ["market", "herb_mountain", "legacy_id"],
+    "risk_tags": []
+  },
+  {
+    "id": "wind_boots",
+    "item_id": "wind_boots",
+    "name": "轻身靴",
+    "slot": "boots",
+    "quality": "uncommon",
+    "price": 24,
+    "description": "鞋底缝有轻身符线，适合大比前练身法。",
+    "effects": {
+      "speed_bonus": 2
+    },
+    "tags": ["market", "legacy_id"],
+    "risk_tags": []
+  },
+  {
+    "id": "night_boots",
+    "item_id": "night_boots",
+    "name": "夜行靴",
+    "slot": "boots",
+    "quality": "cursed",
+    "price": 0,
+    "description": "落步极轻，却沾着灰道常用的遮痕药粉。",
+    "effects": {
+      "speed_bonus": 3,
+      "stealth_bonus": 2,
+      "exposure_bonus": 1,
+      "karma_bonus": 1
+    },
+    "tags": ["theft", "heishui"],
+    "risk_tags": ["gray_path"]
+  },
+  {
+    "id": "calm_charm",
+    "item_id": "calm_charm",
+    "name": "平安符",
+    "slot": "talisman",
+    "quality": "common",
+    "price": 18,
+    "description": "普通护符，只能略微压住杂念。",
+    "effects": {
+      "dao_heart_bonus": 1,
+      "heart_demon_bonus": -1
+    },
+    "tags": ["market", "family", "legacy_id"],
+    "risk_tags": []
+  },
+  {
+    "id": "spirit_gathering_charm",
+    "item_id": "spirit_gathering_charm",
+    "name": "小聚灵符",
+    "slot": "talisman",
+    "quality": "common",
+    "price": 26,
+    "description": "只能聚起一缕薄灵，重在辅助吐纳。",
+    "effects": {
+      "cultivation_bonus": 1
+    },
+    "tags": ["market", "starter"],
+    "risk_tags": []
+  },
+  {
+    "id": "sense_charm",
+    "item_id": "sense_charm",
+    "name": "凝神玉坠",
+    "slot": "talisman",
+    "quality": "reward",
+    "price": 0,
+    "description": "帮助集中神识，不算稀罕，但胜在稳当。",
+    "effects": {
+      "dao_heart_bonus": 1,
+      "divine_sense_bonus": 2
+    },
+    "tags": ["reward", "legacy_id"],
+    "risk_tags": []
+  },
+  {
+    "id": "heishui_trace_charm",
+    "item_id": "heishui_trace_charm",
+    "name": "黑水遮痕符",
+    "slot": "talisman",
+    "quality": "cursed",
+    "price": 0,
+    "description": "能压住一部分外露气息，却会把因果牵到黑水暗线。",
+    "effects": {
+      "stealth_bonus": 3,
+      "exposure_bonus": -1,
+      "karma_bonus": 2
+    },
+    "tags": ["heishui", "theft"],
+    "risk_tags": ["blackwater_trace", "karma"]
+  }
+]

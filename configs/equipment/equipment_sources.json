@@ -1,0 +1,166 @@
+{
+  "market_basic": {
+    "name": "普通坊市基础装备",
+    "items": [
+      {
+        "equipment_id": "wooden_sword",
+        "price": 16,
+        "weight": 10
+      },
+      {
+        "equipment_id": "iron_sword",
+        "price": 22,
+        "weight": 8
+      },
+      {
+        "equipment_id": "patched_robe",
+        "price": 14,
+        "weight": 10
+      },
+      {
+        "equipment_id": "shen_training_robe",
+        "price": 28,
+        "weight": 5
+      },
+      {
+        "equipment_id": "cloth_boots",
+        "price": 10,
+        "weight": 10
+      },
+      {
+        "equipment_id": "wind_boots",
+        "price": 24,
+        "weight": 6
+      },
+      {
+        "equipment_id": "calm_charm",
+        "price": 18,
+        "weight": 8
+      },
+      {
+        "equipment_id": "spirit_gathering_charm",
+        "price": 26,
+        "weight": 4
+      }
+    ]
+  },
+  "herb_mountain_low_chance": {
+    "name": "百药山偶得旧物",
+    "items": [
+      {
+        "equipment_id": "wooden_sword",
+        "weight": 3
+      },
+      {
+        "equipment_id": "patched_robe",
+        "weight": 4
+      },
+      {
+        "equipment_id": "cloth_boots",
+        "weight": 5
+      },
+      {
+        "equipment_id": "calm_charm",
+        "weight": 2
+      }
+    ]
+  },
+  "family_old_equipment": {
+    "name": "家族旧装备赏赐",
+    "items": [
+      {
+        "equipment_id": "patched_robe",
+        "weight": 6
+      },
+      {
+        "equipment_id": "shen_training_robe",
+        "weight": 3
+      },
+      {
+        "equipment_id": "calm_charm",
+        "weight": 4
+      },
+      {
+        "equipment_id": "cloth_boots",
+        "weight": 2
+      }
+    ]
+  },
+  "theft_gray_equipment": {
+    "name": "盗术灰道旧物",
+    "items": [
+      {
+        "equipment_id": "cloth_boots",
+        "weight": 5
+      },
+      {
+        "equipment_id": "iron_sword",
+        "weight": 4
+      },
+      {
+        "equipment_id": "night_boots",
+        "weight": 2
+      },
+      {
+        "equipment_id": "blackwater_dagger",
+        "weight": 1
+      },
+      {
+        "equipment_id": "heishui_trace_charm",
+        "weight": 1
+      }
+    ]
+  },
+  "heishui_blindbox_rare": {
+    "name": "黑水盲盒夹层旧物",
+    "items": [
+      {
+        "equipment_id": "quiet_robe",
+        "weight": 3
+      },
+      {
+        "equipment_id": "night_boots",
+        "weight": 3
+      },
+      {
+        "equipment_id": "blackwater_dagger",
+        "weight": 2
+      },
+      {
+        "equipment_id": "heishui_trace_charm",
+        "weight": 2
+      },
+      {
+        "equipment_id": "sense_charm",
+        "weight": 1
+      }
+    ]
+  },
+  "tournament_top_one": {
+    "name": "大比第一奖励",
+    "items": [
+      {
+        "equipment_id": "greenwood_sword",
+        "weight": 1
+      }
+    ]
+  },
+  "tournament_top_three": {
+    "name": "大比前三奖励",
+    "items": [
+      {
+        "equipment_id": "sense_charm",
+        "weight": 1
+      }
+    ]
+  },
+  "tournament_top_ten": {
+    "name": "大比前十奖励",
+    "items": [
+      {
+        "equipment_id": "shen_training_robe",
+        "weight": 1
+      }
+    ]
+  }
+}

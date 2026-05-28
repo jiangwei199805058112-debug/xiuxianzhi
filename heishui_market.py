@@ -9,7 +9,7 @@ import random
 import re
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from cultivation_assets import grant_equipment
+from cultivation_assets import grant_equipment_from_source
 from player import Player
 
 CONFIG_DIR = Path(__file__).resolve().parent / "configs" / "heishui_market"
@@ -827,7 +827,7 @@ def _resolve_blindbox(player: Player, item: Dict[str, Any], price: int) -> List[
     if outcome.get("outcome_id") == "demonic_item":
         player.market_flags.append("魔道盲盒物")
     if random.random() < 0.015:
-        item_name = grant_equipment(player, random.choice(["calm_charm", "sense_charm", "iron_sword"]))
+        item_name = grant_equipment_from_source(player, "heishui_blindbox_rare")
         if item_name:
             player.exposure += 1
             player.market_flags.append("盲盒旧装备")
