@@ -86,6 +86,9 @@ def load_chapter1_event_pools(
         "farm_events",
         "alchemy_events",
         "mixed_events",
+        "theft_events",
+        "blackwater_events",
+        "market_events",
     ]
     configs = load_chapter1_event_configs(root)
     all_events: List[Dict[str, Any]] = []

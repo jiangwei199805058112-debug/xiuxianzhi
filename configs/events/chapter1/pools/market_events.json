@@ -1,0 +1,170 @@
+[
+  {
+    "event_id": "EVT_CH1_POOL_MARKET_001_PRICE_SHIFT",
+    "title": "坊市涨价",
+    "event_type": "market_price_shift",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 30,
+    "weight": 3,
+    "month_min": 3,
+    "month_max": 12,
+    "cooldown_months": 2,
+    "risk_level": "low",
+    "route_tags": ["market_talisman"],
+    "npc_ids": [],
+    "text": "坊市今日人声嘈杂，符纸、药粉、低阶阵盘都比往常贵了一截。摊主只说近来外门弟子也在囤货。",
+    "auto_choice": "delay_purchase",
+    "conditions": [
+      {
+        "any": [
+          {"field": "monthly_action_counts.market", "op": ">=", "value": 1},
+          {"field": "market_mastery", "op": ">=", "value": 8}
+        ]
+      }
+    ],
+    "choices": [
+      {
+        "choice_id": "delay_purchase",
+        "label": "暂缓采购",
+        "effects": [
+          {"field": "market_dependency_level", "op": "add", "value": 1, "summary": "外物依赖压力+1"},
+          {"field": "market_talisman_path_level", "op": "add", "value": 1, "summary": "坊市路线经验+1"},
+          {"field": "route_tags", "op": "append", "value": "market_talisman", "summary": "记录坊市符箓路线标记"}
+        ]
+      },
+      {
+        "choice_id": "buy_anyway",
+        "label": "照买不误",
+        "effects": [
+          {"field": "spirit_stones", "op": "add", "value": -2, "summary": "灵石-2"},
+          {"field": "market_dependency_level", "op": "add", "value": 4, "summary": "外物依赖+4"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_POOL_MARKET_002_TALISMAN_FIZZLE",
+    "title": "符纸失灵",
+    "event_type": "market_talisman_risk",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 35,
+    "weight": 2,
+    "month_min": 4,
+    "month_max": 12,
+    "cooldown_months": 3,
+    "risk_level": "medium",
+    "route_tags": ["market_talisman"],
+    "npc_ids": [],
+    "text": "你试着催动一张旧符，符面亮了一瞬便暗下去。摊主说是受潮，你却觉得灵纹本就不稳。",
+    "auto_choice": "study_paper",
+    "conditions": [
+      {
+        "any": [
+          {"field": "monthly_action_counts.talisman", "op": ">=", "value": 1},
+          {"field": "talisman_guard", "op": ">", "value": 0},
+          {"field": "talisman_fire", "op": ">", "value": 0},
+          {"field": "market_dependency_level", "op": ">=", "value": 5},
+          {"field": "talisman_failure_risk", "op": ">", "value": 0}
+        ]
+      }
+    ],
+    "choices": [
+      {
+        "choice_id": "study_paper",
+        "label": "拆开研究",
+        "effects": [
+          {"field": "talisman_failure_risk", "op": "add", "value": -2, "summary": "符纸失灵风险-2"},
+          {"field": "market_talisman_path_level", "op": "add", "value": 1, "summary": "坊市路线经验+1"}
+        ]
+      },
+      {
+        "choice_id": "keep_it",
+        "label": "继续备着",
+        "effects": [
+          {"field": "talisman_failure_risk", "op": "add", "value": 3, "summary": "符纸失灵风险+3"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_POOL_MARKET_003_OUTSIDE_TOOL_DEPENDENCY",
+    "title": "外物依赖",
+    "event_type": "market_dependency",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 40,
+    "weight": 2,
+    "month_min": 5,
+    "month_max": 12,
+    "cooldown_months": 4,
+    "risk_level": "medium",
+    "route_tags": ["market_talisman"],
+    "npc_ids": [],
+    "text": "你清点储物袋时，忽然发现自己越来越习惯先看符箓和丹药，而不是先看自身灵力是否跟得上。",
+    "auto_choice": "return_to_foundation",
+    "conditions": [
+      {
+        "any": [
+          {"field": "market_dependency_level", "op": ">=", "value": 5},
+          {"field": "monthly_action_counts.market", "op": ">=", "value": 1},
+          {"field": "consumable_dependency_level", "op": ">=", "value": 5}
+        ]
+      }
+    ],
+    "choices": [
+      {
+        "choice_id": "return_to_foundation",
+        "label": "回头打磨根基",
+        "effects": [
+          {"field": "market_dependency_level", "op": "add", "value": -3, "summary": "外物依赖-3"},
+          {"field": "market_talisman_path_level", "op": "add", "value": 1, "summary": "坊市路线经验+1"}
+        ]
+      },
+      {
+        "choice_id": "stack_tools",
+        "label": "继续堆外物",
+        "effects": [
+          {"field": "market_dependency_level", "op": "add", "value": 5, "summary": "外物依赖+5"},
+          {"field": "consumable_dependency_level", "op": "add", "value": 2, "summary": "消耗品依赖+2"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_POOL_MARKET_004_VENDOR_HINT",
+    "title": "小贩提醒",
+    "event_type": "market_feedback",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 25,
+    "weight": 2,
+    "month_min": 3,
+    "month_max": 12,
+    "cooldown_months": 3,
+    "risk_level": "low",
+    "route_tags": ["market_talisman"],
+    "npc_ids": [],
+    "text": "常摆摊的小贩压低声音提醒你：最近符纸混了几批水货，买便宜的可以，别全押在上面。",
+    "auto_choice": "remember_hint",
+    "conditions": [
+      {"field": "monthly_action_counts.market", "op": ">=", "value": 1}
+    ],
+    "choices": [
+      {
+        "choice_id": "remember_hint",
+        "label": "记下人情",
+        "effects": [
+          {"field": "market_dependency_level", "op": "add", "value": -1, "summary": "外物依赖-1"},
+          {"field": "intel_social_path_level", "op": "add", "value": 1, "summary": "情报人情经验+1"}
+        ]
+      },
+      {
+        "choice_id": "ignore_hint",
+        "label": "只当闲话",
+        "effects": []
+      }
+    ]
+  }
+]

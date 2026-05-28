@@ -1000,6 +1000,9 @@ def run_single_game(route: Dict[str, object], index: int) -> Dict[str, object]:
     farm_event_count = sum(1 for event in event_log if str(event.get("event_type", "")).startswith("farm"))
     alchemy_event_count = sum(1 for event in event_log if str(event.get("event_type", "")).startswith("alchemy"))
     mixed_event_count = sum(1 for event in event_log if str(event.get("event_type", "")).startswith("mixed"))
+    theft_event_count = sum(1 for event in event_log if str(event.get("event_type", "")).startswith("theft"))
+    blackwater_event_count = sum(1 for event in event_log if str(event.get("event_type", "")).startswith("blackwater"))
+    market_event_count = sum(1 for event in event_log if str(event.get("event_type", "")).startswith("market"))
     return {
         "rank": int(result["rank"]),
         "top_ten": bool(result["top_ten"]),
@@ -1046,6 +1049,9 @@ def run_single_game(route: Dict[str, object], index: int) -> Dict[str, object]:
         "chapter1_farm_event_count": farm_event_count,
         "chapter1_alchemy_event_count": alchemy_event_count,
         "chapter1_mixed_event_count": mixed_event_count,
+        "chapter1_theft_event_count": theft_event_count,
+        "chapter1_blackwater_event_count": blackwater_event_count,
+        "chapter1_market_event_count": market_event_count,
         "spirit_field_harvest_count": player.spirit_field_harvest_count,
         "furnace_level": furnace_level(player),
         "equipment_count": equipment_count(player),
@@ -1132,6 +1138,9 @@ def summarize_route(route: Dict[str, object], runs: int) -> Dict[str, float | st
         "avg_chapter1_farm_event_count": average(records, "chapter1_farm_event_count"),
         "avg_chapter1_alchemy_event_count": average(records, "chapter1_alchemy_event_count"),
         "avg_chapter1_mixed_event_count": average(records, "chapter1_mixed_event_count"),
+        "avg_chapter1_theft_event_count": average(records, "chapter1_theft_event_count"),
+        "avg_chapter1_blackwater_event_count": average(records, "chapter1_blackwater_event_count"),
+        "avg_chapter1_market_event_count": average(records, "chapter1_market_event_count"),
         "avg_spirit_field_harvest_count": average(records, "spirit_field_harvest_count"),
         "avg_furnace_level": average(records, "furnace_level"),
         "avg_equipment_count": average(records, "equipment_count"),
@@ -1210,6 +1219,9 @@ def print_summary(summary: Dict[str, float | str | int]) -> None:
     print(f"平均灵田事件触发数：{summary['avg_chapter1_farm_event_count']:.1f}")
     print(f"平均炼丹事件触发数：{summary['avg_chapter1_alchemy_event_count']:.1f}")
     print(f"平均随心事件触发数：{summary['avg_chapter1_mixed_event_count']:.1f}")
+    print(f"平均盗术事件触发数：{summary['avg_chapter1_theft_event_count']:.1f}")
+    print(f"平均黑水事件触发数：{summary['avg_chapter1_blackwater_event_count']:.1f}")
+    print(f"平均坊市事件触发数：{summary['avg_chapter1_market_event_count']:.1f}")
     print(f"平均灵田收获次数：{summary['avg_spirit_field_harvest_count']:.1f}")
     print(f"平均炼丹炉等级：{summary['avg_furnace_level']:.1f}")
     print(f"平均装备数量：{summary['avg_equipment_count']:.1f}")

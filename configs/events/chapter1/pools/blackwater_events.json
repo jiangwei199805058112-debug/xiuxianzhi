@@ -1,0 +1,179 @@
+[
+  {
+    "event_id": "EVT_CH1_POOL_BLACKWATER_001_FAKE_GOODS",
+    "title": "黑水假货",
+    "event_type": "blackwater_risk",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 40,
+    "weight": 3,
+    "month_min": 4,
+    "month_max": 12,
+    "cooldown_months": 3,
+    "risk_level": "medium",
+    "route_tags": ["blackwater"],
+    "npc_ids": ["鬼手老陈"],
+    "text": "你从黑水摊位带回的小瓶灵液，开封后灵气散得比想象中快。瓶底封泥似乎被人重新压过。",
+    "auto_choice": "destroy_fake",
+    "conditions": [
+      {
+        "any": [
+          {"field": "monthly_action_counts.blackwater", "op": ">=", "value": 1},
+          {"field": "heishui_purchase_count", "op": ">", "value": 0},
+          {"field": "heishui_market_spent", "op": ">=", "value": 15}
+        ]
+      }
+    ],
+    "choices": [
+      {
+        "choice_id": "destroy_fake",
+        "label": "认栽销毁",
+        "effects": [
+          {"field": "blackwater_trace_level", "op": "add", "value": 1, "summary": "黑水痕迹+1"},
+          {"field": "blackwater_path_level", "op": "add", "value": 1, "summary": "黑水路线经验+1"},
+          {"field": "route_tags", "op": "append", "value": "blackwater", "summary": "记录黑水路线标记"}
+        ]
+      },
+      {
+        "choice_id": "resell",
+        "label": "转手处理",
+        "effects": [
+          {"field": "spirit_stones", "op": "add", "value": 1, "summary": "灵石+1"},
+          {"field": "blackwater_trace_level", "op": "add", "value": 6, "summary": "黑水痕迹+6"},
+          {"field": "blackwater_debt", "op": "add", "value": 2, "summary": "黑水暗债+2"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_POOL_BLACKWATER_002_MARKED_GOODS",
+    "title": "标记黑货",
+    "event_type": "blackwater_trace",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 45,
+    "weight": 2,
+    "month_min": 4,
+    "month_max": 12,
+    "cooldown_months": 3,
+    "risk_level": "medium",
+    "route_tags": ["blackwater"],
+    "npc_ids": ["鬼手老陈"],
+    "text": "夜里整理储物袋时，你发现一件黑水旧物内侧有极淡的墨纹，像是某种认货记号。",
+    "auto_choice": "scrape_mark",
+    "conditions": [
+      {
+        "any": [
+          {"field": "monthly_action_counts.blackwater", "op": ">=", "value": 1},
+          {"field": "blackwater_trace_level", "op": ">", "value": 0},
+          {"field": "tracking_marks", "op": ">", "value": 0}
+        ]
+      }
+    ],
+    "choices": [
+      {
+        "choice_id": "scrape_mark",
+        "label": "刮去墨纹",
+        "effects": [
+          {"field": "blackwater_trace_level", "op": "add", "value": -2, "summary": "黑水痕迹-2"},
+          {"field": "blackwater_path_level", "op": "add", "value": 1, "summary": "黑水路线经验+1"}
+        ]
+      },
+      {
+        "choice_id": "keep_mark",
+        "label": "暂且留着",
+        "effects": [
+          {"field": "blackwater_trace_level", "op": "add", "value": 5, "summary": "黑水痕迹+5"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_POOL_BLACKWATER_003_DEBT_SEED",
+    "title": "暗债苗头",
+    "event_type": "blackwater_debt",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 40,
+    "weight": 2,
+    "month_min": 5,
+    "month_max": 12,
+    "cooldown_months": 4,
+    "risk_level": "medium",
+    "route_tags": ["blackwater"],
+    "npc_ids": ["鬼手老陈"],
+    "text": "黑水牙人笑着说这次可以先记着，语气很轻，却把你的名字在账角多描了一笔。",
+    "auto_choice": "settle_now",
+    "conditions": [
+      {
+        "any": [
+          {"field": "monthly_action_counts.blackwater", "op": ">=", "value": 1},
+          {"field": "heishui_market_spent", "op": ">=", "value": 30},
+          {"field": "blackwater_debt", "op": ">", "value": 0}
+        ]
+      }
+    ],
+    "choices": [
+      {
+        "choice_id": "settle_now",
+        "label": "当场结清",
+        "effects": [
+          {"field": "spirit_stones", "op": "add", "value": -2, "summary": "灵石-2"},
+          {"field": "blackwater_debt", "op": "add", "value": -3, "summary": "黑水暗债-3"}
+        ]
+      },
+      {
+        "choice_id": "put_on_tab",
+        "label": "记在账上",
+        "effects": [
+          {"field": "blackwater_debt", "op": "add", "value": 7, "summary": "黑水暗债+7"},
+          {"field": "blackwater_trace_level", "op": "add", "value": 2, "summary": "黑水痕迹+2"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_POOL_BLACKWATER_004_BLINDBOX_AFTERTRACE",
+    "title": "盲盒余痕",
+    "event_type": "blackwater_blindbox_trace",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 35,
+    "weight": 1,
+    "month_min": 5,
+    "month_max": 12,
+    "cooldown_months": 4,
+    "risk_level": "medium",
+    "route_tags": ["blackwater"],
+    "npc_ids": ["鬼手老陈"],
+    "text": "那件从黑水盲盒里开出的旧物，近日总在夜半泛起一点冷光。它不像坏了，倒像是在回应什么。",
+    "auto_choice": "seal_item",
+    "conditions": [
+      {
+        "any": [
+          {"field": "heishui_blindbox_purchase_count", "op": ">", "value": 0},
+          {"field": "monthly_action_counts.blackwater", "op": ">=", "value": 1},
+          {"field": "blackwater_trace_level", "op": ">=", "value": 8}
+        ]
+      }
+    ],
+    "choices": [
+      {
+        "choice_id": "seal_item",
+        "label": "封存旧物",
+        "effects": [
+          {"field": "blackwater_trace_level", "op": "add", "value": -3, "summary": "黑水痕迹-3"},
+          {"field": "blackwater_path_level", "op": "add", "value": 1, "summary": "黑水路线经验+1"}
+        ]
+      },
+      {
+        "choice_id": "keep_watching",
+        "label": "继续观察",
+        "effects": [
+          {"field": "blackwater_trace_level", "op": "add", "value": 5, "summary": "黑水痕迹+5"},
+          {"field": "intelligence", "op": "add", "value": 1, "summary": "情报值+1"}
+        ]
+      }
+    ]
+  }
+]

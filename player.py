@@ -168,8 +168,11 @@ class Player:
     monthly_action_counts: Dict[str, int] = field(default_factory=dict)
     route_tags: List[str] = field(default_factory=list)
     theft_trace_level: int = 0
+    theft_suspicion_level: int = 0
     blackwater_debt: int = 0
     blackwater_trace_level: int = 0
+    market_dependency_level: int = 0
+    talisman_failure_risk: int = 0
     demonic_contamination: int = 0
     pill_toxin_level: int = 0
     public_scandal_level: int = 0
@@ -313,8 +316,11 @@ class Player:
             "spirit_field_harvest_count",
             "total_actions",
             "theft_trace_level",
+            "theft_suspicion_level",
             "blackwater_debt",
             "blackwater_trace_level",
+            "market_dependency_level",
+            "talisman_failure_risk",
             "demonic_contamination",
             "pill_toxin_level",
             "public_scandal_level",
@@ -349,6 +355,21 @@ class Player:
         self.heart_demon = min(self.heart_demon, 100)
         self.demonic_qi = min(self.demonic_qi, 100)
         self.karma = min(self.karma, 100)
+        for attr in (
+            "theft_trace_level",
+            "theft_suspicion_level",
+            "blackwater_debt",
+            "blackwater_trace_level",
+            "market_dependency_level",
+            "talisman_failure_risk",
+            "public_scandal_level",
+            "field_pollution_level",
+            "consumable_dependency_level",
+            "resource_scatter_level",
+            "demonic_contamination",
+            "pill_toxin_level",
+        ):
+            setattr(self, attr, min(getattr(self, attr), 100))
         self.righteous_reputation = max(-100, min(self.righteous_reputation, 100))
         self.reputation = max(-100, min(self.reputation, 100))
         self.theft_skill = min(self.theft_skill, 100)
@@ -589,8 +610,11 @@ class Player:
             "monthly_action_counts": self.monthly_action_counts,
             "route_tags": self.route_tags,
             "theft_trace_level": self.theft_trace_level,
+            "theft_suspicion_level": self.theft_suspicion_level,
             "blackwater_debt": self.blackwater_debt,
             "blackwater_trace_level": self.blackwater_trace_level,
+            "market_dependency_level": self.market_dependency_level,
+            "talisman_failure_risk": self.talisman_failure_risk,
             "demonic_contamination": self.demonic_contamination,
             "pill_toxin_level": self.pill_toxin_level,
             "public_scandal_level": self.public_scandal_level,
@@ -738,8 +762,11 @@ class Player:
             monthly_action_counts=dict(data.get("monthly_action_counts") or {}),
             route_tags=list(data.get("route_tags") or []),
             theft_trace_level=_int_from(data, "theft_trace_level", 0),
+            theft_suspicion_level=_int_from(data, "theft_suspicion_level", 0),
             blackwater_debt=_int_from(data, "blackwater_debt", 0),
             blackwater_trace_level=_int_from(data, "blackwater_trace_level", 0),
+            market_dependency_level=_int_from(data, "market_dependency_level", _int_from(data, "consumable_dependency_level", 0)),
+            talisman_failure_risk=_int_from(data, "talisman_failure_risk", 0),
             demonic_contamination=_int_from(data, "demonic_contamination", 0),
             pill_toxin_level=_int_from(data, "pill_toxin_level", 0),
             public_scandal_level=_int_from(data, "public_scandal_level", 0),

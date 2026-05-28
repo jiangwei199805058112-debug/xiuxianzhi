@@ -1,0 +1,180 @@
+[
+  {
+    "event_id": "EVT_CH1_POOL_THEFT_001_TRACE_LEFT",
+    "title": "檐下细痕",
+    "event_type": "theft_trace",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 45,
+    "weight": 3,
+    "month_min": 3,
+    "month_max": 12,
+    "cooldown_months": 2,
+    "risk_level": "medium",
+    "route_tags": ["theft"],
+    "npc_ids": [],
+    "text": "夜风掠过檐角，你回头时才发现瓦面留下一道极浅的划痕。没人看见，但痕迹留多了，总会有人起疑。",
+    "auto_choice": "clean_trace",
+    "conditions": [
+      {
+        "any": [
+          {"field": "monthly_action_counts.theft", "op": ">=", "value": 1},
+          {"field": "theft_trace_level", "op": ">=", "value": 8}
+        ]
+      }
+    ],
+    "choices": [
+      {
+        "choice_id": "clean_trace",
+        "label": "抹去痕迹",
+        "effects": [
+          {"field": "theft_trace_level", "op": "add", "value": -2, "summary": "盗术痕迹-2"},
+          {"field": "theft_path_level", "op": "add", "value": 1, "summary": "盗术路线经验+1"},
+          {"field": "route_tags", "op": "append", "value": "theft", "summary": "记录盗术路线标记"}
+        ]
+      },
+      {
+        "choice_id": "ignore_trace",
+        "label": "装作无事",
+        "effects": [
+          {"field": "theft_trace_level", "op": "add", "value": 5, "summary": "盗术痕迹+5"},
+          {"field": "theft_suspicion_level", "op": "add", "value": 2, "summary": "隐性怀疑+2"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_POOL_THEFT_002_QINGQUE_WARNING",
+    "title": "青雀警告",
+    "event_type": "theft_npc_warning",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 35,
+    "weight": 2,
+    "month_min": 4,
+    "month_max": 12,
+    "cooldown_months": 4,
+    "risk_level": "medium",
+    "route_tags": ["theft"],
+    "npc_ids": ["沈青雀"],
+    "text": "沈青雀不知何时倚在巷口，抛来一句：手脚干净不等于没有痕迹。",
+    "auto_choice": "take_warning",
+    "conditions": [
+      {
+        "any": [
+          {"field": "monthly_action_counts.theft", "op": ">=", "value": 1},
+          {"field": "theft_trace_level", "op": ">=", "value": 12}
+        ]
+      }
+    ],
+    "choices": [
+      {
+        "choice_id": "take_warning",
+        "label": "认真记下",
+        "effects": [
+          {"field": "theft_trace_level", "op": "add", "value": -3, "summary": "盗术痕迹-3"},
+          {"field": "theft_suspicion_level", "op": "add", "value": -1, "summary": "隐性怀疑-1"},
+          {"field": "theft_path_level", "op": "add", "value": 1, "summary": "盗术路线经验+1"},
+          {"field": "route_tags", "op": "append", "value": "theft", "summary": "记录盗术路线标记"}
+        ]
+      },
+      {
+        "choice_id": "shrug_off",
+        "label": "敷衍过去",
+        "effects": [
+          {"field": "theft_trace_level", "op": "add", "value": 2, "summary": "盗术痕迹+2"},
+          {"field": "theft_suspicion_level", "op": "add", "value": 2, "summary": "隐性怀疑+2"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_POOL_THEFT_005_TRACE_DECAY",
+    "title": "痕迹渐淡",
+    "event_type": "theft_recovery",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 20,
+    "weight": 2,
+    "month_min": 4,
+    "month_max": 12,
+    "cooldown_months": 2,
+    "risk_level": "low",
+    "route_tags": ["theft"],
+    "npc_ids": [],
+    "text": "这一个月你没有再碰灰道手段，先前留下的几处疑点也渐渐被杂事掩过。",
+    "auto_choice": "lay_low",
+    "conditions": [
+      {"field": "theft_trace_level", "op": ">", "value": 0},
+      {
+        "any": [
+          {"field": "monthly_action_counts.theft", "op": "not_exists"},
+          {"field": "monthly_action_counts.theft", "op": "==", "value": 0}
+        ]
+      }
+    ],
+    "choices": [
+      {
+        "choice_id": "lay_low",
+        "label": "暂避风头",
+        "effects": [
+          {"field": "theft_trace_level", "op": "add", "value": -8, "summary": "盗术痕迹-8"},
+          {"field": "theft_suspicion_level", "op": "add", "value": -2, "summary": "隐性怀疑-2"}
+        ]
+      },
+      {
+        "choice_id": "watch_quietly",
+        "label": "暗中观察",
+        "effects": [
+          {"field": "theft_trace_level", "op": "add", "value": -2, "summary": "盗术痕迹-2"},
+          {"field": "intel_social_path_level", "op": "add", "value": 1, "summary": "情报人情经验+1"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_POOL_THEFT_006_EVIDENCE_FOUND",
+    "title": "旧证浮出",
+    "event_type": "theft_exposure_risk",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 60,
+    "weight": 1,
+    "month_min": 5,
+    "month_max": 12,
+    "cooldown_months": 4,
+    "risk_level": "high",
+    "route_tags": ["theft"],
+    "npc_ids": [],
+    "text": "族中杂役翻检库房时，提起一件旧物的去向。话未说死，却已有几道目光落到你身上。",
+    "auto_choice": "private_compensation",
+    "conditions": [
+      {
+        "any": [
+          {"field": "theft_trace_level", "op": ">=", "value": 30},
+          {"field": "theft_suspicion_level", "op": ">=", "value": 25}
+        ]
+      }
+    ],
+    "choices": [
+      {
+        "choice_id": "private_compensation",
+        "label": "私下赔补",
+        "effects": [
+          {"field": "spirit_stones", "op": "add", "value": -2, "summary": "灵石-2"},
+          {"field": "theft_trace_level", "op": "add", "value": -8, "summary": "盗术痕迹-8"},
+          {"field": "public_scandal_level", "op": "add", "value": 1, "summary": "公开丑闻+1"}
+        ]
+      },
+      {
+        "choice_id": "deny",
+        "label": "咬死不认",
+        "effects": [
+          {"field": "theft_trace_level", "op": "add", "value": 5, "summary": "盗术痕迹+5"},
+          {"field": "theft_suspicion_level", "op": "add", "value": 5, "summary": "隐性怀疑+5"},
+          {"field": "public_scandal_level", "op": "add", "value": 3, "summary": "公开丑闻+3"}
+        ]
+      }
+    ]
+  }
+]

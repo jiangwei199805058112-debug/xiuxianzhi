@@ -1,7 +1,7 @@
 {
-  "version": "v0.1.27",
+  "version": "v0.1.28",
   "enabled": true,
-  "description": "第一章月度事件规则。v0.1.27 仅启用灵田、炼丹与随心混合低风险事件池 MVP。",
+  "description": "第一章月度事件规则。v0.1.28 在原低风险事件基础上接入盗术、黑水与坊市风险事件池 MVP。",
   "monthly_trigger_chance": 0.35,
   "max_random_events_per_month": 1,
   "max_npc_reaction_events_per_month": 1,

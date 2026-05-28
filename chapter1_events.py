@@ -14,6 +14,9 @@ CHAPTER1_MVP_EVENT_POOLS = (
     "farm_events",
     "alchemy_events",
     "mixed_events",
+    "theft_events",
+    "blackwater_events",
+    "market_events",
 )
 
 
@@ -73,6 +76,7 @@ def _build_event_log_entry(event: Dict[str, Any], choice: Dict[str, Any], curren
         "event_id": str(event.get("event_id") or ""),
         "title": str(event.get("title") or ""),
         "event_type": str(event.get("event_type") or ""),
+        "risk_level": str(event.get("risk_level") or ""),
         "route_tags": list(event.get("route_tags") or []),
         "choice_id": str(choice.get("choice_id") or ""),
         "choice_label": str(choice.get("label") or ""),
@@ -122,8 +126,11 @@ def get_chapter1_event_debug_summary(player: Any) -> Dict[str, Any]:
         "route_tags": list(getattr(player, "route_tags", []) or []),
         "risk_levels": {
             "theft_trace_level": int(getattr(player, "theft_trace_level", 0)),
+            "theft_suspicion_level": int(getattr(player, "theft_suspicion_level", 0)),
             "blackwater_debt": int(getattr(player, "blackwater_debt", 0)),
             "blackwater_trace_level": int(getattr(player, "blackwater_trace_level", 0)),
+            "market_dependency_level": int(getattr(player, "market_dependency_level", 0)),
+            "talisman_failure_risk": int(getattr(player, "talisman_failure_risk", 0)),
             "demonic_contamination": int(getattr(player, "demonic_contamination", 0)),
             "pill_toxin_level": int(getattr(player, "pill_toxin_level", 0)),
             "public_scandal_level": int(getattr(player, "public_scandal_level", 0)),

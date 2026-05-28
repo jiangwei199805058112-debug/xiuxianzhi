@@ -331,6 +331,8 @@ def _buy_market_good(player: Player) -> str:
 
     player.spirit_stones -= price
     _apply_market_good(player, good)
+    if any(str(attr).startswith("talisman_") for attr in dict(good.get("effects", {})).keys()):
+        record_monthly_action(player, "talisman")
     return f"你买下{good['name']}，花费灵石{price}。效果：{good['effect_text']}。"
 
 

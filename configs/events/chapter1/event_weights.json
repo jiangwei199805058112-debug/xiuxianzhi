@@ -1,10 +1,13 @@
 {
-  "version": "v0.1.27",
-  "description": "第一章事件权重配置。v0.1.27 仅服务灵田、炼丹与随心混合低风险事件池 MVP。",
+  "version": "v0.1.28",
+  "description": "第一章事件权重配置。v0.1.28 覆盖灵田、炼丹、随心混合、盗术、黑水与坊市风险事件池 MVP。",
   "default_weight": 1,
   "route_weight_modifiers": {
     "farming": 1,
     "alchemy": 1,
-    "mixed": 1
+    "mixed": 1,
+    "theft": 1,
+    "blackwater": 1,
+    "market_talisman": 1
   }
 }
