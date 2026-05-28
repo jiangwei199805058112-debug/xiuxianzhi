@@ -177,3 +177,18 @@ python simulate.py
 `docs/canon/09_chapter1_route_event_chains.md` 已补充坊市符箓流的 12 个月事件链。当前该文档包含盗术灰道流、炼丹丹房流、灵田经营流、黑水投机流、正修打坐流、魔道边缘流、情报人情流、坊市符箓流，以及相关路线交叉事件。
 
 `docs/canon/09_chapter1_route_event_chains.md` 已补充随心混合流的 12 个月事件链。当前该文档已包含第一章九条主要玩法路线：盗术灰道流、炼丹丹房流、灵田经营流、黑水投机流、正修打坐流、魔道边缘流、情报人情流、坊市符箓流、随心混合流，以及相关路线交叉事件。
+
+## 第一章事件与大比设计
+
+`docs/canon/10_chapter1_event_pool.md` 是第一章随机事件池、路线事件池、NPC反应、危机与补救事件池设计文档。
+
+`docs/canon/11_tournament_event_design.md` 是第一章家族大比事件、对手、判定、看台反应、缺席替代与结局衔接设计文档。
+
+后续第一章事件与大比开发应优先参考：
+
+1. `docs/canon/00_content_master.md`
+2. `docs/canon/06_npc_master.md`
+3. `docs/canon/07_chapter1_main_arc.md`
+4. `docs/canon/09_chapter1_route_event_chains.md`
+5. `docs/canon/10_chapter1_event_pool.md`
+6. `docs/canon/11_tournament_event_design.md`
