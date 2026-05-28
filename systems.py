@@ -39,9 +39,11 @@ from chapter1_events import format_chapter1_event_log, process_chapter1_monthly_
 from growth_system import (
     apply_breakthrough_insight,
     breakthrough_insight_menu_text,
+    calculate_breadth,
     gain_mastery,
     growth_status_text,
     has_insight,
+    mastery_count_at_least,
 )
 from heishui_market import market_action as heishui_market_action, resolve_monthly_risk_event
 from player import Player
@@ -78,6 +80,88 @@ def _read_choice(prompt: str) -> str:
 
 def _append_growth(text: str, growth_text: str) -> str:
     return f"{text}\n{growth_text}" if growth_text else text
+
+
+def _monthly_counts(player: Player) -> Dict[str, int]:
+    counts = getattr(player, "monthly_action_counts", {}) or {}
+    if not isinstance(counts, dict):
+        return {}
+    normalized: Dict[str, int] = {}
+    for key, value in counts.items():
+        try:
+            normalized[str(key)] = max(0, int(value))
+        except (TypeError, ValueError):
+            normalized[str(key)] = 0
+    return normalized
+
+
+def _non_meditation_action_added(before: Dict[str, int], after: Dict[str, int]) -> bool:
+    ignored = {"meditation", "system_contacts"}
+    for key, value in after.items():
+        if key in ignored:
+            continue
+        if value > before.get(key, 0):
+            return True
+    return False
+
+
+def _recover_meditation_fatigue(player: Player, action_key: str | None, before_counts: Dict[str, int]) -> None:
+    if action_key == "meditation":
+        return
+    after_counts = _monthly_counts(player)
+    if action_key or _non_meditation_action_added(before_counts, after_counts):
+        player.meditation_fatigue = max(0, player.meditation_fatigue - 1)
+
+
+def _resolve_cultivation_pressure(player: Player) -> str:
+    counts = _monthly_counts(player)
+    meditation_actions = counts.get("meditation", 0)
+    practical_actions = sum(
+        value for key, value in counts.items() if key not in {"meditation", "system_contacts"}
+    )
+    lines: List[str] = []
+
+    if meditation_actions >= 2:
+        fatigue_gain = meditation_actions - 1
+        if practical_actions == 0:
+            fatigue_gain += 1
+        elif practical_actions >= 2:
+            fatigue_gain = max(0, fatigue_gain - 1)
+        player.meditation_fatigue += fatigue_gain
+        player.closed_training_months += 1
+        if fatigue_gain > 0:
+            lines.append(f"闭门久坐，灵机开始滞涩，冥坐疲劳+{fatigue_gain}。")
+        if player.meditation_fatigue >= 8 and random.random() < 0.35:
+            player.heart_demon += 1
+            lines.append("连月枯坐后杂念回潮，心魔值+1。")
+    elif meditation_actions == 0 and practical_actions >= 2 and player.meditation_fatigue > 0:
+        recover = min(2, player.meditation_fatigue)
+        player.meditation_fatigue -= recover
+        lines.append(f"本月多在外事中磨砺，冥坐疲劳-{recover}。")
+
+    breadth = calculate_breadth(player)
+    if (
+        player.month in {4, 8, 12}
+        and player.foundation >= 50
+        and breadth >= 4
+        and mastery_count_at_least(player, 15) >= 5
+    ):
+        upkeep = 4 + min(4, player.foundation // 30) + max(0, breadth - 4)
+        if player.spirit_stones >= upkeep:
+            player.spirit_stones -= upkeep
+            lines.append(f"诸艺并修需要补足耗材与人情，灵石-{upkeep}。")
+        else:
+            shortage = upkeep - player.spirit_stones
+            paid = player.spirit_stones
+            player.spirit_stones = 0
+            player.cultivation_pressure += shortage
+            player.cultivation_pressure_events += 1
+            player.heart_demon += 1
+            lines.append(
+                f"诸艺并修耗材不足，只能勉强补上{paid}枚灵石，修行缺口+{shortage}，心魔值+1。"
+            )
+
+    return "\n".join(lines)
 
 
 def tutorial_tip(player: Player) -> str:
@@ -150,6 +234,7 @@ def _jade_bottle_text(player: Player) -> str:
 
 def action_cultivate(player: Player) -> str:
     before_realm = player.realm_level
+    previous_meditation_actions = _monthly_counts(player).get("meditation", 0)
     gain = _roll(4, 7) + max(1, player.cultivation_speed // 2) + player.root_growth
     equipment_cultivation_bonus = max(0, equipment_bonus(player, "cultivation_bonus"))
     gain += min(1, equipment_cultivation_bonus)
@@ -165,6 +250,15 @@ def action_cultivate(player: Player) -> str:
         used_pill = True
     if has_insight(player, "静水深流"):
         gain += 1
+    repeat_penalty = 0
+    if previous_meditation_actions == 1:
+        repeat_penalty = 1
+    elif previous_meditation_actions >= 2:
+        repeat_penalty = 2
+    fatigue_penalty = min(2, player.meditation_fatigue // 8)
+    meditation_penalty = min(max(0, gain - 1), repeat_penalty + fatigue_penalty)
+    if meditation_penalty:
+        gain -= meditation_penalty
     player.gain_cultivation_progress(gain)
     if random.random() < 0.35:
         player.dao_heart += 1
@@ -175,8 +269,9 @@ def action_cultivate(player: Player) -> str:
     player.exposure += 1 if gain >= 13 else 0
     growth_text = gain_mastery(player, "cultivation_mastery", 5, foundation_gain=4)
     pill_text = "你服下一枚丹药，药力推着灵气贯通周天。" if used_pill else "你没有丹药辅佐，只靠吐纳打磨根基。"
+    pressure_text = "闭门久坐让本旬收益略有折损。" if meditation_penalty else ""
     realm_text = f"境界突破至{player.realm_name()}。" if player.realm_level > before_realm else ""
-    return _append_growth(f"你打坐修炼一旬。{pill_text}修炼进度提升 {gain}。{realm_text}", growth_text)
+    return _append_growth(f"你打坐修炼一旬。{pill_text}{pressure_text}修炼进度提升 {gain}。{realm_text}", growth_text)
 
 
 def action_spirit_field(player: Player) -> str:
@@ -971,6 +1066,7 @@ def perform_action(player: Player, choice: str) -> str:
     if handler is None:
         return "无效行动。"
     setattr(player, "_last_action_waived", False)
+    before_counts = _monthly_counts(player)
     result = handler(player)
     waived = bool(getattr(player, "_waive_next_action", False))
     if waived:
@@ -980,6 +1076,7 @@ def perform_action(player: Player, choice: str) -> str:
         action_key = ACTION_COUNT_KEYS.get(choice)
         if action_key:
             record_monthly_action(player, action_key)
+        _recover_meditation_fatigue(player, action_key, before_counts)
         player.advance_action()
     return result
 
@@ -992,6 +1089,7 @@ def monthly_event(player: Player) -> str:
     heishui_text = resolve_monthly_risk_event(player)
     theft_text = resolve_monthly_theft_event(player)
     field_text = advance_spirit_fields(player)
+    cultivation_pressure_text = _resolve_cultivation_pressure(player)
     chapter1_event_logs = process_chapter1_monthly_events(player, player.month, interactive=False)
     player.clamp()
     effects_text = "，".join(
@@ -1008,6 +1106,8 @@ def monthly_event(player: Player) -> str:
         lines.append(theft_text)
     if field_text:
         lines.append(field_text)
+    if cultivation_pressure_text:
+        lines.append(cultivation_pressure_text)
     for log_entry in chapter1_event_logs:
         lines.append(format_chapter1_event_log(log_entry))
     lines.append("本月高年份灵草正常出售次数已重置。")

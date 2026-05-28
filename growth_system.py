@@ -271,9 +271,9 @@ def growth_status_text(player: Any) -> str:
 
 def foundation_burst_ready(player: Any) -> bool:
     return (
-        _value(player, "foundation") >= 80
-        and calculate_breadth(player) >= 6
-        and mastery_count_at_least(player, 20) >= 5
+        _value(player, "foundation") >= 55
+        and calculate_breadth(player) >= 4
+        and mastery_count_at_least(player, 15) >= 5
     )
 
 
@@ -281,7 +281,8 @@ def foundation_burst_bonus(player: Any) -> Dict[str, object]:
     if getattr(player, "foundation_burst_triggered", False) or not foundation_burst_ready(player):
         return {"triggered": False, "mind": 0, "trial": 0, "combat": 0, "total": 0, "text": ""}
 
-    total = random.randint(3, 6)
+    resource_strain = _value(player, "cultivation_pressure") > 0 or _value(player, "spirit_stones") <= 1
+    total = 0 if resource_strain else 1
     risk = (
         _value(player, "karma") >= 35
         or _value(player, "demonic_qi") >= 45
@@ -290,9 +291,9 @@ def foundation_burst_bonus(player: Any) -> Dict[str, object]:
         or _value(player, "enemy_count") >= 4
     )
     if risk:
-        total = max(3, total - 2)
-    parts = {"mind": 1, "trial": 1, "combat": 1}
-    for _ in range(total - 3):
+        total = max(0, total - 1)
+    parts = {"mind": 0, "trial": 0, "combat": 0}
+    for _ in range(total):
         parts[random.choice(["mind", "trial", "combat"])] += 1
     player.foundation_burst_triggered = True
     text = (
@@ -302,7 +303,9 @@ def foundation_burst_bonus(player: Any) -> Dict[str, object]:
         "触发：厚积薄发。"
     )
     if risk:
-        text += "只是业力、暴露或旧怨拖住部分灵机，爆发稍有折损。"
+        text += "只是业力、暴露或旧怨拖住部分灵机，这点贯通来得更浅。"
+    if resource_strain:
+        text += "只是耗材与人情未足，灵机只作体悟，难以化成大比加分。"
     return {"triggered": True, "mind": parts["mind"], "trial": parts["trial"], "combat": parts["combat"], "total": total, "text": text}
 
 

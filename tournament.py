@@ -56,6 +56,41 @@ def _intel_bonus(player: Player, section: str, cap_value: int = 2) -> int:
     return max(-cap_value, min(cap_value, bonus))
 
 
+def _practice_pressure_adjustments(player: Player) -> Dict[str, object]:
+    fatigue = max(0, int(getattr(player, "meditation_fatigue", 0)))
+    closed_months = max(0, int(getattr(player, "closed_training_months", 0)))
+    pressure = max(0, int(getattr(player, "cultivation_pressure", 0)))
+    breadth = calculate_breadth(player)
+    stones = max(0, int(getattr(player, "spirit_stones", 0)))
+    narrow_penalty = 1 if closed_months >= 6 and breadth <= 2 else 0
+    resource_squeeze = 0
+    if breadth >= 4 and int(getattr(player, "foundation", 0)) >= 50 and stones < 5:
+        resource_squeeze = 3 if stones <= 1 else 1
+
+    pressure_drag = 1 if pressure > 0 else 0
+    mind_penalty = min(2, fatigue // 20 + (1 if pressure >= 4 else 0))
+    trial_penalty = min(4, closed_months // 11 + pressure_drag + pressure // 4 + narrow_penalty + resource_squeeze)
+    combat_penalty = min(4, fatigue // 20 + closed_months // 12 + pressure_drag + pressure // 5 + resource_squeeze)
+
+    notes: List[str] = []
+    if fatigue >= 6:
+        notes.append("冥坐疲劳：连月闭门打坐，问心与斗法发挥略滞。")
+    if closed_months >= 6 and breadth <= 2:
+        notes.append("闭门偏科：修为稳固，但山门试炼与斗法应变不足。")
+    if pressure > 0:
+        notes.append("修行缺口：诸艺并修的耗材与人情未补齐，临场准备受损。")
+    if resource_squeeze:
+        notes.append("资源紧绷：根基与诸艺铺得太开，临近大比时调度余裕不足。")
+
+    return {
+        "mind": -mind_penalty,
+        "trial": -trial_penalty,
+        "combat": -combat_penalty,
+        "total": -(mind_penalty + trial_penalty + combat_penalty),
+        "notes": notes,
+    }
+
+
 def run_tournament(player: Player) -> Dict[str, object]:
     mind_intel_bonus = _intel_bonus(player, "mind")
     trial_intel_bonus = _intel_bonus(player, "trial")
@@ -68,6 +103,10 @@ def run_tournament(player: Player) -> Dict[str, object]:
     growth_mind = int(growth_adjustments.get("mind", 0))
     growth_trial = int(growth_adjustments.get("trial", 0))
     growth_combat = int(growth_adjustments.get("combat", 0))
+    practice_adjustments = _practice_pressure_adjustments(player)
+    practice_mind = int(practice_adjustments.get("mind", 0))
+    practice_trial = int(practice_adjustments.get("trial", 0))
+    practice_combat = int(practice_adjustments.get("combat", 0))
     burst = foundation_burst_bonus(player)
     burst_mind = int(burst.get("mind", 0))
     burst_trial = int(burst.get("trial", 0))
@@ -104,6 +143,7 @@ def run_tournament(player: Player) -> Dict[str, object]:
         + mind_intel_bonus
         + theft_mind
         + growth_mind
+        + practice_mind
         + burst_mind,
         25,
     )
@@ -124,6 +164,7 @@ def run_tournament(player: Player) -> Dict[str, object]:
         + trial_intel_bonus
         + theft_trial
         + growth_trial
+        + practice_trial
         + burst_trial,
         35,
     )
@@ -145,6 +186,7 @@ def run_tournament(player: Player) -> Dict[str, object]:
         + combat_intel_bonus
         + theft_combat
         + growth_combat
+        + practice_combat
         + burst_combat,
         40,
     )
@@ -217,6 +259,8 @@ def run_tournament(player: Player) -> Dict[str, object]:
         "theft_tournament_notes": list(theft_adjustments.get("notes", [])),
         "growth_tournament_adjustment": int(growth_adjustments.get("total", 0)),
         "growth_tournament_notes": list(growth_adjustments.get("notes", [])),
+        "practice_pressure_adjustment": int(practice_adjustments.get("total", 0)),
+        "practice_pressure_notes": list(practice_adjustments.get("notes", [])),
         "foundation_burst_bonus": int(burst.get("total", 0)),
         "foundation_burst_triggered": bool(burst.get("triggered", False)),
         "foundation_burst_text": str(burst.get("text", "")),
@@ -247,7 +291,9 @@ def format_tournament_result(result: Dict[str, object]) -> str:
         lines.append(f"盗术综合修正：{int(result.get('theft_tournament_adjustment', 0)):+d}")
     if result.get("growth_tournament_adjustment", 0):
         lines.append(f"根基融会修正：{int(result.get('growth_tournament_adjustment', 0)):+d}")
-    if result.get("foundation_burst_bonus", 0):
+    if result.get("practice_pressure_adjustment", 0):
+        lines.append(f"闭关与资源修正：{int(result.get('practice_pressure_adjustment', 0)):+d}")
+    if result.get("foundation_burst_triggered", False):
         lines.append(f"厚积薄发修正：+{int(result.get('foundation_burst_bonus', 0))}")
         burst_text = str(result.get("foundation_burst_text", ""))
         if burst_text:
@@ -261,6 +307,11 @@ def format_tournament_result(result: Dict[str, object]) -> str:
     if isinstance(growth_notes, list) and growth_notes:
         lines.append("根基融会：")
         for note in growth_notes:
+            lines.append(f"- {note}")
+    practice_notes = result.get("practice_pressure_notes", [])
+    if isinstance(practice_notes, list) and practice_notes:
+        lines.append("闭关与资源压力：")
+        for note in practice_notes:
             lines.append(f"- {note}")
     lines.append(f"总分：{result['total']}/100")
     lines.append(f"名次：第 {result['rank']} 名")

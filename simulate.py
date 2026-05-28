@@ -1106,6 +1106,11 @@ def run_single_game(route: Dict[str, object], index: int) -> Dict[str, object]:
         "mastery_total": mastery_total(player),
         "unlocked_insight_count": len(player.unlocked_insights),
         "foundation_burst_triggered": player.foundation_burst_triggered,
+        "meditation_fatigue": player.meditation_fatigue,
+        "closed_training_months": player.closed_training_months,
+        "cultivation_pressure": player.cultivation_pressure,
+        "cultivation_pressure_events": player.cultivation_pressure_events,
+        "practice_pressure_adjustment": int(result.get("practice_pressure_adjustment", 0)),
         "breakthrough_insight_choices": max(0, player.breakthrough_count - player.breakthrough_insight_pending),
         **{f"insight_{name}": has_insight(player, name) for name in TRACKED_INSIGHTS},
         "theft_skill": player.theft_skill,
@@ -1198,6 +1203,11 @@ def summarize_route(route: Dict[str, object], runs: int) -> Dict[str, float | st
         "avg_mastery_total": average(records, "mastery_total"),
         "avg_unlocked_insight_count": average(records, "unlocked_insight_count"),
         "foundation_burst_rate": rate(records, "foundation_burst_triggered"),
+        "avg_meditation_fatigue": average(records, "meditation_fatigue"),
+        "avg_closed_training_months": average(records, "closed_training_months"),
+        "avg_cultivation_pressure": average(records, "cultivation_pressure"),
+        "avg_cultivation_pressure_events": average(records, "cultivation_pressure_events"),
+        "avg_practice_pressure_adjustment": average(records, "practice_pressure_adjustment"),
         "avg_breakthrough_insight_choices": average(records, "breakthrough_insight_choices"),
         **{f"rate_{name}": rate(records, f"insight_{name}") for name in TRACKED_INSIGHTS},
         "avg_theft_skill": average(records, "theft_skill"),
@@ -1281,6 +1291,11 @@ def print_summary(summary: Dict[str, float | str | int]) -> None:
     print(f"平均博学度：{summary['avg_breadth']:.1f}")
     print(f"平均熟练度总和：{summary['avg_mastery_total']:.1f}")
     print(f"平均解锁融会状态数量：{summary['avg_unlocked_insight_count']:.1f}")
+    print(f"平均冥坐疲劳：{summary['avg_meditation_fatigue']:.1f}")
+    print(f"平均闭关月数：{summary['avg_closed_training_months']:.1f}")
+    print(f"平均修行缺口：{summary['avg_cultivation_pressure']:.1f}")
+    print(f"修行缺口事件次数：{summary['avg_cultivation_pressure_events']:.1f}")
+    print(f"闭关与资源大比修正：{summary['avg_practice_pressure_adjustment']:.1f}")
     print(f"静水深流触发率：{pct(float(summary['rate_静水深流']))}")
     print(f"法随心动触发率：{pct(float(summary['rate_法随心动']))}")
     print(f"药理通明触发率：{pct(float(summary['rate_药理通明']))}")
@@ -1331,10 +1346,12 @@ def route_assessment(summary: Dict[str, float | str | int]) -> str:
     if name == "厚积薄发流":
         burst_rate = float(summary.get("foundation_burst_rate", 0))
         wanfa_rate = float(summary.get("rate_万法互证", 0))
-        if top_ten < 0.35:
+        if top_ten < 0.75:
             return "慢热路线过弱，根基和多门熟练度未能转化为足够大比竞争力。"
-        if top_ten > 0.85:
+        if top_ten > 0.92:
             return "综合路线过强，需要压低融会或厚积薄发收益。"
+        if top_three < 0.05:
+            return "后期爆发过弱，前三冲击感不足。"
         if top_three > 0.15:
             return "后期爆发过强，前三率偏高。"
         if wanfa_rate > 0.50:
@@ -1392,7 +1409,11 @@ def route_assessment(summary: Dict[str, float | str | int]) -> str:
     if name == "坊市符箓流" and stones > 18 and avg_rank <= 5:
         return "名次高且资源宽裕，坊市价格仍可能偏低。"
     if name == "纯打坐流":
-        if top_three > 0.50:
+        if top_ten < 0.70:
+            return "纯打坐保底不足，基础修炼路线过弱。"
+        if top_ten > 0.88:
+            return "纯打坐过于稳定，路线选择压力不足。"
+        if top_three > 0.15:
             return "基础修炼冲榜能力仍偏强。"
         return "低风险且较稳定，适合作为新手保底。"
     if name == "黑水投机流":
@@ -1445,7 +1466,7 @@ def evaluate(summaries: List[Dict[str, float | str | int]]) -> List[str]:
 
         if name != "随心游玩流" and top_ten < 0.30:
             notes.append(f"{name}：前十率低于30%，该路线可能过弱。")
-        if name != "随心游玩流" and top_ten > 0.90:
+        if name not in {"随心游玩流", "厚积薄发流"} and top_ten > 0.90:
             notes.append(f"{name}：前十率高于90%，该路线可能过强。")
         if name != "随心游玩流" and top_three > 0.50:
             notes.append(f"{name}：前三率高于50%，该路线可能过强。")
@@ -1459,10 +1480,10 @@ def evaluate(summaries: List[Dict[str, float | str | int]]) -> List[str]:
             notes.append("坊市符箓流：资源剩余过多且名次高，坊市价格偏低。")
         if name == "纯打坐流" and top_ten < 0.30:
             notes.append("纯打坐流：前十率过低，新手保底不足。")
-        if name == "纯打坐流" and top_three > 0.50:
+        if name == "纯打坐流" and top_ten > 0.88:
+            notes.append("纯打坐流：前十率高于88%，低风险路线仍过稳。")
+        if name == "纯打坐流" and top_three > 0.15:
             notes.append("纯打坐流：前三率过高，基础修炼收益过强。")
-        if name == "纯打坐流" and top_ten > 0.90 and top_three > 0.50:
-            notes.append("纯打坐流：前十率和前三率都偏高，策略性不足。")
         if name == "黑水投机流" and top_ten > 0.90:
             notes.append("黑水投机流：前十率超过90%，黑水坊市收益过稳。")
         if name == "黑水投机流" and top_three > 0.30 and risk_events < 1:
@@ -1483,10 +1504,12 @@ def evaluate(summaries: List[Dict[str, float | str | int]]) -> List[str]:
             if theft_attempts > 2 and theft_resolutions < 0.15:
                 notes.append("盗术投机流：失败后赔偿/拒赔/强逃几乎不发生，失败事件覆盖不足。")
         if name == "厚积薄发流":
-            if top_ten < 0.35:
-                notes.append("厚积薄发流：前十率低于35%，慢热路线过弱。")
-            if top_ten > 0.85:
-                notes.append("厚积薄发流：前十率高于85%，综合路线过强。")
+            if top_ten < 0.75:
+                notes.append("厚积薄发流：前十率低于75%，慢热路线过弱。")
+            if top_ten > 0.92:
+                notes.append("厚积薄发流：前十率高于92%，综合路线过强。")
+            if top_three < 0.05:
+                notes.append("厚积薄发流：前三率低于5%，后期爆发不足。")
             if top_three > 0.15:
                 notes.append("厚积薄发流：前三率高于15%，后期爆发过强。")
             if wanfa_rate > 0.50:

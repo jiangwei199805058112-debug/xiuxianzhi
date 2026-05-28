@@ -103,6 +103,10 @@ class Player:
     breakthrough_count: int = 0
     unlocked_insights: List[str] = field(default_factory=list)
     foundation_burst_triggered: bool = False
+    meditation_fatigue: int = 0
+    closed_training_months: int = 0
+    cultivation_pressure: int = 0
+    cultivation_pressure_events: int = 0
     theft_skill: int = 0
     theft_exp: int = 0
     theft_attempts: int = 0
@@ -278,6 +282,10 @@ class Player:
             "market_mastery",
             "breakthrough_insight_pending",
             "breakthrough_count",
+            "meditation_fatigue",
+            "closed_training_months",
+            "cultivation_pressure",
+            "cultivation_pressure_events",
             "theft_skill",
             "theft_exp",
             "theft_attempts",
@@ -372,6 +380,10 @@ class Player:
             "pill_toxin_level",
         ):
             setattr(self, attr, min(getattr(self, attr), 100))
+        self.meditation_fatigue = min(self.meditation_fatigue, 60)
+        self.closed_training_months = min(self.closed_training_months, 12)
+        self.cultivation_pressure = min(self.cultivation_pressure, 60)
+        self.cultivation_pressure_events = min(self.cultivation_pressure_events, 12)
         self.righteous_reputation = max(-100, min(self.righteous_reputation, 100))
         self.reputation = max(-100, min(self.reputation, 100))
         self.theft_skill = min(self.theft_skill, 100)
@@ -479,6 +491,7 @@ class Player:
             f"根基：根基{self.foundation}｜博学度{calculate_breadth(self)}｜熟练总和{mastery_total(self)}｜突破{self.breakthrough_count}次｜待选感悟{self.breakthrough_insight_pending}\n"
             f"熟练：{mastery_text}\n"
             f"融会：{len(self.unlocked_insights)}项｜{insight_text}｜厚积薄发{'已触发' if self.foundation_burst_triggered else '未触发'}\n"
+            f"闭关压力：冥坐疲劳{self.meditation_fatigue}｜闭关月数{self.closed_training_months}｜修行缺口{self.cultivation_pressure}\n"
             f"隐患：暴露度{self.exposure}｜心魔值{self.heart_demon}｜魔气值{self.demonic_qi}｜业力值{self.karma}\n"
             f"名声：正道声望{self.righteous_reputation}｜旁门声望{self.reputation:+d}｜结仇{self.enemy_count}\n"
             f"盗术：等级{self.theft_skill}｜经验{self.theft_exp}｜尝试{self.theft_attempts}｜成功{self.theft_successes}｜失败{self.theft_failures}｜赔偿{self.theft_compensations}｜拒赔{self.theft_refusals}｜强逃{self.theft_escape_count}\n"
@@ -546,6 +559,10 @@ class Player:
             "breakthrough_count": self.breakthrough_count,
             "unlocked_insights": self.unlocked_insights,
             "foundation_burst_triggered": self.foundation_burst_triggered,
+            "meditation_fatigue": self.meditation_fatigue,
+            "closed_training_months": self.closed_training_months,
+            "cultivation_pressure": self.cultivation_pressure,
+            "cultivation_pressure_events": self.cultivation_pressure_events,
             "theft_skill": self.theft_skill,
             "theft_exp": self.theft_exp,
             "theft_attempts": self.theft_attempts,
@@ -711,6 +728,10 @@ class Player:
             breakthrough_count=_int_from(data, "breakthrough_count", 0),
             unlocked_insights=list(data.get("unlocked_insights") or []),
             foundation_burst_triggered=bool(data.get("foundation_burst_triggered", False)),
+            meditation_fatigue=_int_from(data, "meditation_fatigue", 0),
+            closed_training_months=_int_from(data, "closed_training_months", 0),
+            cultivation_pressure=_int_from(data, "cultivation_pressure", 0),
+            cultivation_pressure_events=_int_from(data, "cultivation_pressure_events", 0),
             theft_skill=_int_from(data, "theft_skill", 0),
             theft_exp=_int_from(data, "theft_exp", 0),
             theft_attempts=_int_from(data, "theft_attempts", 0),
