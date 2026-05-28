@@ -1111,6 +1111,10 @@ def run_single_game(route: Dict[str, object], index: int) -> Dict[str, object]:
         "cultivation_pressure": player.cultivation_pressure,
         "cultivation_pressure_events": player.cultivation_pressure_events,
         "practice_pressure_adjustment": int(result.get("practice_pressure_adjustment", 0)),
+        "mixed_practice_points": player.mixed_practice_points,
+        "diverse_action_months": player.diverse_action_months,
+        "adaptive_experience": player.adaptive_experience,
+        "mixed_adaptive_relief": int(result.get("mixed_adaptive_relief", 0)),
         "breakthrough_insight_choices": max(0, player.breakthrough_count - player.breakthrough_insight_pending),
         **{f"insight_{name}": has_insight(player, name) for name in TRACKED_INSIGHTS},
         "theft_skill": player.theft_skill,
@@ -1208,6 +1212,10 @@ def summarize_route(route: Dict[str, object], runs: int) -> Dict[str, float | st
         "avg_cultivation_pressure": average(records, "cultivation_pressure"),
         "avg_cultivation_pressure_events": average(records, "cultivation_pressure_events"),
         "avg_practice_pressure_adjustment": average(records, "practice_pressure_adjustment"),
+        "avg_mixed_practice_points": average(records, "mixed_practice_points"),
+        "avg_diverse_action_months": average(records, "diverse_action_months"),
+        "avg_adaptive_experience": average(records, "adaptive_experience"),
+        "avg_mixed_adaptive_relief": average(records, "mixed_adaptive_relief"),
         "avg_breakthrough_insight_choices": average(records, "breakthrough_insight_choices"),
         **{f"rate_{name}": rate(records, f"insight_{name}") for name in TRACKED_INSIGHTS},
         "avg_theft_skill": average(records, "theft_skill"),
@@ -1296,6 +1304,10 @@ def print_summary(summary: Dict[str, float | str | int]) -> None:
     print(f"平均修行缺口：{summary['avg_cultivation_pressure']:.1f}")
     print(f"修行缺口事件次数：{summary['avg_cultivation_pressure_events']:.1f}")
     print(f"闭关与资源大比修正：{summary['avg_practice_pressure_adjustment']:.1f}")
+    print(f"平均杂学傍身点数：{summary['avg_mixed_practice_points']:.1f}")
+    print(f"平均多线行动月数：{summary['avg_diverse_action_months']:.1f}")
+    print(f"平均临场适应经验：{summary['avg_adaptive_experience']:.1f}")
+    print(f"平均杂学缓冲：{summary['avg_mixed_adaptive_relief']:.1f}")
     print(f"静水深流触发率：{pct(float(summary['rate_静水深流']))}")
     print(f"法随心动触发率：{pct(float(summary['rate_法随心动']))}")
     print(f"药理通明触发率：{pct(float(summary['rate_药理通明']))}")

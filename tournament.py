@@ -56,6 +56,62 @@ def _intel_bonus(player: Player, section: str, cap_value: int = 2) -> int:
     return max(-cap_value, min(cap_value, bonus))
 
 
+def _mixed_resource_reserve(player: Player) -> int:
+    herbal_reserve = (
+        max(0, int(getattr(player, "herbs", 0))) // 25
+        + max(0, int(getattr(player, "aged_herbs_10", 0))) // 3
+        + max(0, int(getattr(player, "aged_herbs_30", 0)))
+    )
+    pill_reserve = max(0, int(getattr(player, "pills", 0))) // 4
+    return min(2, herbal_reserve + pill_reserve)
+
+
+def _mixed_adaptive_relief(player: Player, breadth: int) -> int:
+    if breadth < 3:
+        return 0
+    mixed_points = max(0, int(getattr(player, "mixed_practice_points", 0)))
+    diverse_months = max(0, int(getattr(player, "diverse_action_months", 0)))
+    adaptive_exp = max(0, int(getattr(player, "adaptive_experience", 0)))
+    mixed_path_score = max(0, int(getattr(player, "mixed_path_score", 0)))
+    resource_reserve = _mixed_resource_reserve(player)
+
+    relief = 0
+    if mixed_points >= 4 and diverse_months >= 2:
+        relief += 1
+    if adaptive_exp >= 4:
+        relief += 1
+    relief += resource_reserve
+    if mixed_path_score >= 2 and diverse_months >= 1:
+        relief += 1
+
+    risk_load = 0
+    if (
+        int(getattr(player, "theft_attempts", 0)) >= 3
+        or int(getattr(player, "theft_trace_level", 0)) >= 2
+        or int(getattr(player, "theft_suspicion_level", 0)) >= 2
+    ):
+        risk_load += 1
+    if (
+        int(getattr(player, "heishui_purchase_count", 0)) >= 3
+        or int(getattr(player, "tracking_marks", 0)) > 0
+        or int(getattr(player, "blackwater_debt", 0)) > 0
+        or int(getattr(player, "blackwater_trace_level", 0)) > 0
+    ):
+        risk_load += 1
+    if (
+        int(getattr(player, "demonic_qi", 0)) >= 20
+        or int(getattr(player, "karma", 0)) >= 15
+        or int(getattr(player, "demonic_contamination", 0)) > 0
+    ):
+        risk_load += 1
+
+    if resource_reserve <= 0:
+        relief = 1 if mixed_path_score >= 3 and diverse_months >= 2 else 0
+    else:
+        relief = min(relief, resource_reserve + 1)
+    return min(2, max(0, relief - risk_load))
+
+
 def _practice_pressure_adjustments(player: Player) -> Dict[str, object]:
     fatigue = max(0, int(getattr(player, "meditation_fatigue", 0)))
     closed_months = max(0, int(getattr(player, "closed_training_months", 0)))
@@ -71,6 +127,9 @@ def _practice_pressure_adjustments(player: Player) -> Dict[str, object]:
     mind_penalty = min(2, fatigue // 20 + (1 if pressure >= 4 else 0))
     trial_penalty = min(4, closed_months // 11 + pressure_drag + pressure // 4 + narrow_penalty + resource_squeeze)
     combat_penalty = min(4, fatigue // 20 + closed_months // 12 + pressure_drag + pressure // 5 + resource_squeeze)
+    adaptive_relief = _mixed_adaptive_relief(player, breadth)
+    trial_penalty = max(0, trial_penalty - min(2, adaptive_relief))
+    combat_penalty = max(0, combat_penalty - min(1, max(0, adaptive_relief - 1)))
 
     notes: List[str] = []
     if fatigue >= 6:
@@ -81,12 +140,15 @@ def _practice_pressure_adjustments(player: Player) -> Dict[str, object]:
         notes.append("修行缺口：诸艺并修的耗材与人情未补齐，临场准备受损。")
     if resource_squeeze:
         notes.append("资源紧绷：根基与诸艺铺得太开，临近大比时调度余裕不足。")
+    if adaptive_relief:
+        notes.append("杂学傍身：多线经验与资源预案缓和了临场扣分。")
 
     return {
         "mind": -mind_penalty,
         "trial": -trial_penalty,
         "combat": -combat_penalty,
         "total": -(mind_penalty + trial_penalty + combat_penalty),
+        "adaptive_relief": adaptive_relief,
         "notes": notes,
     }
 
@@ -260,6 +322,7 @@ def run_tournament(player: Player) -> Dict[str, object]:
         "growth_tournament_adjustment": int(growth_adjustments.get("total", 0)),
         "growth_tournament_notes": list(growth_adjustments.get("notes", [])),
         "practice_pressure_adjustment": int(practice_adjustments.get("total", 0)),
+        "mixed_adaptive_relief": int(practice_adjustments.get("adaptive_relief", 0)),
         "practice_pressure_notes": list(practice_adjustments.get("notes", [])),
         "foundation_burst_bonus": int(burst.get("total", 0)),
         "foundation_burst_triggered": bool(burst.get("triggered", False)),

@@ -107,6 +107,9 @@ class Player:
     closed_training_months: int = 0
     cultivation_pressure: int = 0
     cultivation_pressure_events: int = 0
+    mixed_practice_points: int = 0
+    diverse_action_months: int = 0
+    adaptive_experience: int = 0
     theft_skill: int = 0
     theft_exp: int = 0
     theft_attempts: int = 0
@@ -286,6 +289,9 @@ class Player:
             "closed_training_months",
             "cultivation_pressure",
             "cultivation_pressure_events",
+            "mixed_practice_points",
+            "diverse_action_months",
+            "adaptive_experience",
             "theft_skill",
             "theft_exp",
             "theft_attempts",
@@ -384,6 +390,9 @@ class Player:
         self.closed_training_months = min(self.closed_training_months, 12)
         self.cultivation_pressure = min(self.cultivation_pressure, 60)
         self.cultivation_pressure_events = min(self.cultivation_pressure_events, 12)
+        self.mixed_practice_points = min(self.mixed_practice_points, 60)
+        self.diverse_action_months = min(self.diverse_action_months, 12)
+        self.adaptive_experience = min(self.adaptive_experience, 60)
         self.righteous_reputation = max(-100, min(self.righteous_reputation, 100))
         self.reputation = max(-100, min(self.reputation, 100))
         self.theft_skill = min(self.theft_skill, 100)
@@ -492,6 +501,7 @@ class Player:
             f"熟练：{mastery_text}\n"
             f"融会：{len(self.unlocked_insights)}项｜{insight_text}｜厚积薄发{'已触发' if self.foundation_burst_triggered else '未触发'}\n"
             f"闭关压力：冥坐疲劳{self.meditation_fatigue}｜闭关月数{self.closed_training_months}｜修行缺口{self.cultivation_pressure}\n"
+            f"杂学傍身：多线点数{self.mixed_practice_points}｜多线月份{self.diverse_action_months}｜临场适应{self.adaptive_experience}\n"
             f"隐患：暴露度{self.exposure}｜心魔值{self.heart_demon}｜魔气值{self.demonic_qi}｜业力值{self.karma}\n"
             f"名声：正道声望{self.righteous_reputation}｜旁门声望{self.reputation:+d}｜结仇{self.enemy_count}\n"
             f"盗术：等级{self.theft_skill}｜经验{self.theft_exp}｜尝试{self.theft_attempts}｜成功{self.theft_successes}｜失败{self.theft_failures}｜赔偿{self.theft_compensations}｜拒赔{self.theft_refusals}｜强逃{self.theft_escape_count}\n"
@@ -563,6 +573,9 @@ class Player:
             "closed_training_months": self.closed_training_months,
             "cultivation_pressure": self.cultivation_pressure,
             "cultivation_pressure_events": self.cultivation_pressure_events,
+            "mixed_practice_points": self.mixed_practice_points,
+            "diverse_action_months": self.diverse_action_months,
+            "adaptive_experience": self.adaptive_experience,
             "theft_skill": self.theft_skill,
             "theft_exp": self.theft_exp,
             "theft_attempts": self.theft_attempts,
@@ -732,6 +745,9 @@ class Player:
             closed_training_months=_int_from(data, "closed_training_months", 0),
             cultivation_pressure=_int_from(data, "cultivation_pressure", 0),
             cultivation_pressure_events=_int_from(data, "cultivation_pressure_events", 0),
+            mixed_practice_points=_int_from(data, "mixed_practice_points", 0),
+            diverse_action_months=_int_from(data, "diverse_action_months", 0),
+            adaptive_experience=_int_from(data, "adaptive_experience", 0),
             theft_skill=_int_from(data, "theft_skill", 0),
             theft_exp=_int_from(data, "theft_exp", 0),
             theft_attempts=_int_from(data, "theft_attempts", 0),

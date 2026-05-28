@@ -113,6 +113,87 @@ def _recover_meditation_fatigue(player: Player, action_key: str | None, before_c
         player.meditation_fatigue = max(0, player.meditation_fatigue - 1)
 
 
+SAFE_DIVERSITY_GROUPS = {
+    "meditation": "orthodox",
+    "combat_training": "orthodox",
+    "herb_gathering": "resource",
+    "farm_care": "resource",
+    "farm_tend": "resource",
+    "farm_harvest": "resource",
+    "alchemy": "resource",
+    "market": "support",
+    "talisman": "support",
+    "social": "support",
+    "intel": "support",
+}
+HIGH_RISK_ACTION_KEYS = {"blackwater", "theft", "demonic"}
+
+
+def _mixed_month_profile(counts: Dict[str, int]) -> Dict[str, object]:
+    safe_groups = {
+        group
+        for key, group in SAFE_DIVERSITY_GROUPS.items()
+        if counts.get(key, 0) > 0
+    }
+    safe_action_total = sum(counts.get(key, 0) for key in SAFE_DIVERSITY_GROUPS)
+    risk_contacts = sum(1 for key in HIGH_RISK_ACTION_KEYS if counts.get(key, 0) > 0)
+    return {
+        "safe_groups": safe_groups,
+        "safe_action_total": safe_action_total,
+        "risk_contacts": risk_contacts,
+    }
+
+
+def _record_mixed_practice(player: Player, counts: Dict[str, int]) -> None:
+    profile = _mixed_month_profile(counts)
+    safe_groups = profile["safe_groups"]
+    if not isinstance(safe_groups, set):
+        return
+    safe_action_total = int(profile.get("safe_action_total", 0))
+    risk_contacts = int(profile.get("risk_contacts", 0))
+    if len(safe_groups) < 2 or safe_action_total < 2:
+        return
+
+    mixed_points = 1
+    adaptive_gain = 0
+    if len(safe_groups) >= 3:
+        mixed_points += 1
+        adaptive_gain += 1
+        player.diverse_action_months += 1
+    if {"resource", "support"}.issubset(safe_groups):
+        mixed_points += 1
+        adaptive_gain += 1
+    if risk_contacts:
+        adaptive_gain = max(0, adaptive_gain - risk_contacts)
+
+    player.mixed_practice_points += mixed_points
+    player.adaptive_experience += adaptive_gain
+
+
+def _adaptive_upkeep_relief(player: Player, counts: Dict[str, int]) -> int:
+    profile = _mixed_month_profile(counts)
+    safe_groups = profile["safe_groups"]
+    if not isinstance(safe_groups, set):
+        return 0
+    resource_reserve = (
+        player.herbs // 25
+        + player.aged_herbs_10 // 3
+        + player.aged_herbs_30
+        + player.pills // 4
+    )
+    if resource_reserve <= 0:
+        return 0
+    relief = 0
+    if len(safe_groups) >= 3:
+        relief += 1
+    if {"resource", "support"}.issubset(safe_groups):
+        relief += 1
+    if {"orthodox", "resource", "support"}.issubset(safe_groups):
+        relief += 1
+    relief = max(0, relief - int(profile.get("risk_contacts", 0)))
+    return min(1, resource_reserve, relief)
+
+
 def _resolve_cultivation_pressure(player: Player) -> str:
     counts = _monthly_counts(player)
     meditation_actions = counts.get("meditation", 0)
@@ -120,6 +201,7 @@ def _resolve_cultivation_pressure(player: Player) -> str:
         value for key, value in counts.items() if key not in {"meditation", "system_contacts"}
     )
     lines: List[str] = []
+    _record_mixed_practice(player, counts)
 
     if meditation_actions >= 2:
         fatigue_gain = meditation_actions - 1
@@ -147,6 +229,9 @@ def _resolve_cultivation_pressure(player: Player) -> str:
         and mastery_count_at_least(player, 15) >= 5
     ):
         upkeep = 4 + min(4, player.foundation // 30) + max(0, breadth - 4)
+        upkeep_relief = _adaptive_upkeep_relief(player, counts)
+        if upkeep_relief > 0:
+            upkeep = max(2, upkeep - upkeep_relief)
         if player.spirit_stones >= upkeep:
             player.spirit_stones -= upkeep
             lines.append(f"诸艺并修需要补足耗材与人情，灵石-{upkeep}。")
