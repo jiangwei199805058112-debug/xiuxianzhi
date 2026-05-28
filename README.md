@@ -196,3 +196,9 @@ python simulate.py
 `docs/design/route_balance_notes.md` 是九条路线的数值平衡、风险阈值、大比得分构成、模拟验收指标设计文档。
 
 后续将第一章事件池、路线事件、大比事件接入代码时，应参考该文档控制路线强度。后续涉及 `simulate.py` 调整时，也应参考该文档中的模拟指标。
+
+`docs/design/event_implementation_plan.md` 是第一章事件系统从文档走向配置化、模块化实现的实施方案。
+
+后续把 `10_chapter1_event_pool.md`、`11_tournament_event_design.md`、`09_chapter1_route_event_chains.md` 接入代码时，应先参考该实施方案。
+
+该方案强调分阶段、小步提交、旧存档兼容、无模拟不提交、不一次性大改。
