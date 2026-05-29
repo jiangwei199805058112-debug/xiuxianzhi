@@ -1016,9 +1016,10 @@ def risk_score(player: Player) -> int:
     )
 
 
-def run_single_game(route: Dict[str, object], index: int) -> Dict[str, object]:
+def play_single_game(route: Dict[str, object], index: int, *, collect_log: bool = True) -> Tuple[Player, Dict[str, object]]:
     route_name = str(route["name"])
     player = create_player(f"{route_name}{index}")
+    setattr(player, "_suppress_playtest_logging", not collect_log)
     while not player.finished:
         action_token = choose_route_action(route, player)
         action = action_choice_from_token(action_token)
@@ -1037,6 +1038,11 @@ def run_single_game(route: Dict[str, object], index: int) -> Dict[str, object]:
             builtins.input = old_input
 
     result = run_tournament(player)
+    return player, result
+
+
+def run_single_game(route: Dict[str, object], index: int, *, collect_log: bool = False) -> Dict[str, object]:
+    player, result = play_single_game(route, index, collect_log=collect_log)
     result_flags = {str(flag) for flag in result["flags"]}
     event_log = list(getattr(player, "monthly_event_log", []) or [])
     farm_event_count = sum(1 for event in event_log if str(event.get("event_type", "")).startswith("farm"))
@@ -1094,6 +1100,8 @@ def run_single_game(route: Dict[str, object], index: int) -> Dict[str, object]:
         "chapter1_theft_event_count": theft_event_count,
         "chapter1_blackwater_event_count": blackwater_event_count,
         "chapter1_market_event_count": market_event_count,
+        "action_log_count": len(getattr(player, "action_log", []) or []),
+        "monthly_summary_count": len(getattr(player, "monthly_summary_log", []) or []),
         "spirit_field_harvest_count": player.spirit_field_harvest_count,
         "furnace_level": furnace_level(player),
         "equipment_count": equipment_count(player),
@@ -1149,8 +1157,8 @@ def rate(records: List[Dict[str, object]], key: str) -> float:
     return sum(1 for record in records if record[key]) / len(records)
 
 
-def summarize_route(route: Dict[str, object], runs: int) -> Dict[str, float | str | int]:
-    records = [run_single_game(route, index) for index in range(1, runs + 1)]
+def summarize_route(route: Dict[str, object], runs: int, *, collect_log: bool = False) -> Dict[str, float | str | int]:
+    records = [run_single_game(route, index, collect_log=collect_log) for index in range(1, runs + 1)]
     total_theft_attempts = sum(int(record["theft_attempts"]) for record in records)
     total_theft_successes = sum(int(record["theft_successes"]) for record in records)
     return {
@@ -1195,6 +1203,8 @@ def summarize_route(route: Dict[str, object], runs: int) -> Dict[str, float | st
         "avg_chapter1_theft_event_count": average(records, "chapter1_theft_event_count"),
         "avg_chapter1_blackwater_event_count": average(records, "chapter1_blackwater_event_count"),
         "avg_chapter1_market_event_count": average(records, "chapter1_market_event_count"),
+        "avg_action_log_count": average(records, "action_log_count"),
+        "avg_monthly_summary_count": average(records, "monthly_summary_count"),
         "avg_spirit_field_harvest_count": average(records, "spirit_field_harvest_count"),
         "avg_furnace_level": average(records, "furnace_level"),
         "avg_equipment_count": average(records, "equipment_count"),
@@ -1288,6 +1298,8 @@ def print_summary(summary: Dict[str, float | str | int]) -> None:
     print(f"平均盗术事件触发数：{summary['avg_chapter1_theft_event_count']:.1f}")
     print(f"平均黑水事件触发数：{summary['avg_chapter1_blackwater_event_count']:.1f}")
     print(f"平均坊市事件触发数：{summary['avg_chapter1_market_event_count']:.1f}")
+    print(f"平均试玩行为日志条数：{summary['avg_action_log_count']:.1f}")
+    print(f"平均月度总结条数：{summary['avg_monthly_summary_count']:.1f}")
     print(f"平均灵田收获次数：{summary['avg_spirit_field_harvest_count']:.1f}")
     print(f"平均炼丹炉等级：{summary['avg_furnace_level']:.1f}")
     print(f"平均装备数量：{summary['avg_equipment_count']:.1f}")
@@ -1560,7 +1572,17 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="自动模拟第一章不同流派的数值表现。")
     parser.add_argument("--runs", type=int, default=DEFAULT_RUNS, help="每个流派模拟局数，默认200。")
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help="随机种子，默认20260527。")
+    parser.add_argument("--report-one", action="store_true", help="额外输出一局完整试玩行为分析报告。")
+    parser.add_argument("--report-route", default="随心游玩流", help="--report-one 使用的流派名称，默认随心游玩流。")
+    parser.add_argument("--collect-log", action="store_true", help="批量模拟时也保留完整试玩行为日志，默认关闭以避免拖慢200/1000局模拟。")
     return parser.parse_args()
+
+
+def route_by_name(name: str) -> Dict[str, object]:
+    for route in ROUTES:
+        if str(route["name"]) == str(name):
+            return route
+    return ROUTES[0]
 
 
 def main() -> None:
@@ -1572,7 +1594,7 @@ def main() -> None:
     print(f"随机种子：{args.seed}")
     print(f"每个流派模拟：{runs}局")
 
-    summaries = [summarize_route(route, runs) for route in ROUTES]
+    summaries = [summarize_route(route, runs, collect_log=bool(args.collect_log)) for route in ROUTES]
     for summary in summaries:
         print_summary(summary)
 
@@ -1580,6 +1602,18 @@ def main() -> None:
     print("自动评价：")
     for note in evaluate(summaries):
         print(f"- {note}")
+
+    if args.report_one:
+        route = route_by_name(str(args.report_route))
+        player, result = play_single_game(route, 1, collect_log=True)
+        print()
+        print(f"=== {route['name']} 单局试玩行为分析 ===")
+        report = str(result.get("playtest_report", ""))
+        if report:
+            print(report)
+        else:
+            print(f"行为日志条数：{len(getattr(player, 'action_log', []) or [])}")
+            print(f"月度总结条数：{len(getattr(player, 'monthly_summary_log', []) or [])}")
 
 
 if __name__ == "__main__":

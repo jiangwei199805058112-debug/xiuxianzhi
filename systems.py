@@ -33,7 +33,7 @@ from cultivation_assets import (
     unequip_slot,
     upgrade_spirit_field,
 )
-from data import ACTION_NAMES, ATTRIBUTE_NAMES, MARKET_GOODS, MARKET_PRICES, MONTHLY_EVENTS, NPCS
+from data import ACTIONS_PER_MONTH, ACTION_NAMES, ATTRIBUTE_NAMES, MARKET_GOODS, MARKET_PRICES, MONTHLY_EVENTS, NPCS
 from chapter1_event_state import record_monthly_action
 from chapter1_events import format_chapter1_event_log, process_chapter1_monthly_events
 from growth_system import (
@@ -47,6 +47,14 @@ from growth_system import (
 )
 from heishui_market import market_action as heishui_market_action, resolve_monthly_risk_event
 from player import Player
+from playtest_logger import (
+    action_type_label,
+    format_monthly_summary,
+    normalize_action_type,
+    record_action as record_playtest_action,
+    snapshot_player_state,
+    summarize_month,
+)
 from theft_system import (
     THEFT_MENU_ITEMS,
     THEFT_TYPE_BY_MENU,
@@ -1145,28 +1153,133 @@ ACTION_COUNT_KEYS = {
     "legacy_meditate": "meditation",
 }
 
+LEGACY_ACTION_NAMES = {
+    "legacy_spirit_field": "照看药田",
+    "legacy_family_work": "家族杂务",
+    "legacy_spell_training": "法术训练",
+    "legacy_investigate": "探查情报",
+    "legacy_romance": "情缘互动",
+    "legacy_meditate": "静心调息",
+}
+
+
+def _safe_playtest_snapshot(player: Player) -> Dict[str, object]:
+    try:
+        return snapshot_player_state(player)
+    except Exception:
+        return {}
+
+
+def _action_count_delta(before: Dict[str, int], after: Dict[str, int], key: str) -> int:
+    return max(0, int(after.get(key, 0)) - int(before.get(key, 0)))
+
+
+def _equipment_changed(before: Dict[str, object], after: Dict[str, object]) -> bool:
+    return (
+        before.get("equipped_items") != after.get("equipped_items")
+        or before.get("equipment_inventory") != after.get("equipment_inventory")
+        or int(after.get("equipment_history_count", 0) or 0) > int(before.get("equipment_history_count", 0) or 0)
+    )
+
+
+def _infer_playtest_action_type(
+    choice: str,
+    action_key: str | None,
+    before_counts: Dict[str, int],
+    after_counts: Dict[str, int],
+    before_state: Dict[str, object],
+    after_state: Dict[str, object],
+    waived: bool,
+) -> str:
+    if waived:
+        return "insight"
+    if _action_count_delta(before_counts, after_counts, "blackwater"):
+        return "blackwater"
+    if _action_count_delta(before_counts, after_counts, "theft"):
+        return "theft"
+    if any(_action_count_delta(before_counts, after_counts, key) for key in ("farm_care", "farm_tend", "farm_harvest")):
+        return "farm"
+    if _equipment_changed(before_state, after_state) and choice in {"4", "8"}:
+        return "equipment"
+    if choice == "8" and _action_count_delta(before_counts, after_counts, "alchemy"):
+        return "alchemy"
+    if action_key:
+        return normalize_action_type(action_key)
+    if choice == "8":
+        return "preparation"
+    return "unknown"
+
+
+def _playtest_action_name(choice: str, action_type: str) -> str:
+    base_name = ACTION_NAMES.get(choice) or LEGACY_ACTION_NAMES.get(choice) or action_type_label(action_type)
+    label = action_type_label(action_type)
+    if label and label not in base_name:
+        return f"{base_name}（{label}）"
+    return base_name
+
+
+def _playtest_note(result: str) -> List[str]:
+    first_line = str(result or "").strip().splitlines()[0] if str(result or "").strip() else ""
+    if not first_line:
+        return []
+    return [first_line[:120]]
+
+
+def _completed_month(player: Player) -> int:
+    total_actions = max(1, int(getattr(player, "total_actions", 0)))
+    return min(12, (total_actions - 1) // ACTIONS_PER_MONTH + 1)
+
 
 def perform_action(player: Player, choice: str) -> str:
     handler = ACTION_HANDLERS.get(choice)
     if handler is None:
         return "无效行动。"
+    playtest_logging = not bool(getattr(player, "_suppress_playtest_logging", False))
     setattr(player, "_last_action_waived", False)
     before_counts = _monthly_counts(player)
+    before_state = _safe_playtest_snapshot(player) if playtest_logging else {}
     result = handler(player)
     waived = bool(getattr(player, "_waive_next_action", False))
+    action_key = ACTION_COUNT_KEYS.get(choice)
     if waived:
         setattr(player, "_waive_next_action", False)
         setattr(player, "_last_action_waived", True)
     elif choice not in NON_ADVANCING_ACTIONS:
-        action_key = ACTION_COUNT_KEYS.get(choice)
         if action_key:
             record_monthly_action(player, action_key)
         _recover_meditation_fatigue(player, action_key, before_counts)
         player.advance_action()
+    after_counts = _monthly_counts(player)
+    after_state = _safe_playtest_snapshot(player) if playtest_logging else {}
+    should_log = playtest_logging and (choice not in NON_ADVANCING_ACTIONS or waived or before_state != after_state)
+    if should_log:
+        action_type = _infer_playtest_action_type(
+            choice,
+            action_key,
+            before_counts,
+            after_counts,
+            before_state,
+            after_state,
+            waived,
+        )
+        try:
+            record_playtest_action(
+                player,
+                action_type,
+                _playtest_action_name(choice, action_type),
+                before_state,
+                after_state,
+                notes=_playtest_note(result),
+            )
+        except Exception:
+            pass
     return result
 
 
 def monthly_event(player: Player) -> str:
+    month_for_summary = _completed_month(player)
+    playtest_logging = not bool(getattr(player, "_suppress_playtest_logging", False))
+    before_event_state = _safe_playtest_snapshot(player) if playtest_logging else {}
     player.aged_herbs_sold_this_month = 0
     event = random.choice(MONTHLY_EVENTS)
     for attr, value in event["effects"].items():
@@ -1196,6 +1309,27 @@ def monthly_event(player: Player) -> str:
     for log_entry in chapter1_event_logs:
         lines.append(format_chapter1_event_log(log_entry))
     lines.append("本月高年份灵草正常出售次数已重置。")
+    event_titles = [str(event["title"])]
+    if heishui_text:
+        event_titles.append("黑水月末风险")
+    if theft_text:
+        event_titles.append("盗术月末反噬")
+    if field_text:
+        event_titles.append("灵田月末成长")
+    event_titles.extend(str(log_entry.get("title", "")) for log_entry in chapter1_event_logs if log_entry.get("title"))
+    try:
+        if not playtest_logging:
+            return "\n".join(lines)
+        month_summary = summarize_month(
+            player,
+            month_for_summary,
+            before_event=before_event_state,
+            after_event=_safe_playtest_snapshot(player),
+            events=event_titles,
+        )
+        lines.append(format_monthly_summary(month_summary))
+    except Exception:
+        pass
     return "\n".join(lines)
 
 

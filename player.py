@@ -22,6 +22,7 @@ from cultivation_assets import (
 from data import ACTIONS_PER_MONTH, INITIAL_NPC_AFFECTION, NPCS, SPIRIT_ROOTS, TOTAL_ACTIONS
 from growth_system import calculate_breadth, mastery_total
 from chapter1_event_state import ensure_event_state
+from playtest_logger import ensure_playtest_state
 
 
 MAX_REALM_LEVEL = 9
@@ -175,6 +176,9 @@ class Player:
     event_cooldowns: Dict[str, int] = field(default_factory=dict)
     monthly_event_log: List[Dict[str, Any]] = field(default_factory=list)
     monthly_action_counts: Dict[str, int] = field(default_factory=dict)
+    action_log: List[Dict[str, Any]] = field(default_factory=list)
+    monthly_summary_log: List[Dict[str, Any]] = field(default_factory=list)
+    playtest_notes: List[str] = field(default_factory=list)
     route_tags: List[str] = field(default_factory=list)
     theft_trace_level: int = 0
     theft_suspicion_level: int = 0
@@ -457,6 +461,7 @@ class Player:
         ensure_equipment(self)
         self.tutorial_flags = [str(flag) for flag in self.tutorial_flags if str(flag)]
         ensure_event_state(self)
+        ensure_playtest_state(self)
 
     def advance_action(self) -> None:
         self.total_actions += 1
@@ -641,6 +646,9 @@ class Player:
             "event_cooldowns": self.event_cooldowns,
             "monthly_event_log": self.monthly_event_log,
             "monthly_action_counts": self.monthly_action_counts,
+            "action_log": self.action_log,
+            "monthly_summary_log": self.monthly_summary_log,
+            "playtest_notes": self.playtest_notes,
             "route_tags": self.route_tags,
             "theft_trace_level": self.theft_trace_level,
             "theft_suspicion_level": self.theft_suspicion_level,
@@ -813,6 +821,9 @@ class Player:
             event_cooldowns=dict(data.get("event_cooldowns") or {}),
             monthly_event_log=list(data.get("monthly_event_log") or []),
             monthly_action_counts=dict(data.get("monthly_action_counts") or {}),
+            action_log=list(data.get("action_log") or []),
+            monthly_summary_log=list(data.get("monthly_summary_log") or []),
+            playtest_notes=list(data.get("playtest_notes") or []),
             route_tags=list(data.get("route_tags") or []),
             theft_trace_level=_int_from(data, "theft_trace_level", 0),
             theft_suspicion_level=_int_from(data, "theft_suspicion_level", 0),

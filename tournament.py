@@ -8,6 +8,7 @@ from typing import Dict, List, Tuple
 from cultivation_assets import equipment_bonus, equipment_score, furnace_level, grant_equipment, material_total
 from growth_system import calculate_breadth, foundation_burst_bonus, growth_tournament_adjustments
 from player import Player
+from playtest_logger import format_playtest_report, summarize_month
 from theft_system import theft_tournament_adjustments
 
 
@@ -154,6 +155,20 @@ def _practice_pressure_adjustments(player: Player) -> Dict[str, object]:
 
 
 def run_tournament(player: Player) -> Dict[str, object]:
+    final_month_summary = ""
+    playtest_logging = not bool(getattr(player, "_suppress_playtest_logging", False))
+    try:
+        if (
+            playtest_logging
+            and player.finished
+            and not any(int(entry.get("month", 0)) == 12 for entry in getattr(player, "monthly_summary_log", []) or [])
+        ):
+            final_month_summary = str(
+                summarize_month(player, 12, events=["一年期满，家族大比开场"]).get("text", "")
+            )
+    except Exception:
+        final_month_summary = ""
+
     mind_intel_bonus = _intel_bonus(player, "mind")
     trial_intel_bonus = _intel_bonus(player, "trial")
     combat_intel_bonus = _intel_bonus(player, "combat")
@@ -306,7 +321,7 @@ def run_tournament(player: Player) -> Dict[str, object]:
 
     player.ending_flags = flags
     player.clamp()
-    return {
+    result = {
         "scores": scores,
         "total": total,
         "rank": rank,
@@ -332,7 +347,16 @@ def run_tournament(player: Player) -> Dict[str, object]:
         "equipment_score": equipment_score(player),
         "alchemy_reserve_bonus": alchemy_reserve_bonus,
         "reward_text": reward_text,
+        "final_month_summary": final_month_summary,
     }
+    if playtest_logging:
+        try:
+            result["playtest_report"] = format_playtest_report(player, result)
+        except Exception:
+            result["playtest_report"] = ""
+    else:
+        result["playtest_report"] = ""
+    return result
 
 
 def format_tournament_result(result: Dict[str, object]) -> str:
@@ -397,4 +421,9 @@ def format_tournament_result(result: Dict[str, object]) -> str:
     lines.append(str(result["summary"]))
     if result.get("reward_text"):
         lines.append(str(result["reward_text"]))
+    if result.get("final_month_summary"):
+        lines.append(str(result["final_month_summary"]))
+    playtest_report = str(result.get("playtest_report", ""))
+    if playtest_report:
+        lines.append(playtest_report)
     return "\n".join(lines)
