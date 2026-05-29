@@ -6,6 +6,7 @@ import random
 from typing import Dict, List, Tuple
 
 from cultivation_assets import equipment_bonus, equipment_score, furnace_level, grant_equipment, material_total
+from chapter1_events import format_chapter1_event_log, process_chapter1_monthly_events
 from growth_system import calculate_breadth, foundation_burst_bonus, growth_tournament_adjustments
 from player import Player
 from playtest_logger import format_playtest_report, summarize_month
@@ -156,17 +157,24 @@ def _practice_pressure_adjustments(player: Player) -> Dict[str, object]:
 
 def run_tournament(player: Player) -> Dict[str, object]:
     final_month_summary = ""
+    pre_tournament_event_logs: List[Dict[str, object]] = []
     playtest_logging = not bool(getattr(player, "_suppress_playtest_logging", False))
     try:
+        event_rng = random.Random(120000 + int(getattr(player, "total_actions", 0)) + len(getattr(player, "triggered_event_ids", []) or []))
+        pre_tournament_event_logs = process_chapter1_monthly_events(player, 12, interactive=False, rng=event_rng, force=True)
         if (
             playtest_logging
             and player.finished
             and not any(int(entry.get("month", 0)) == 12 for entry in getattr(player, "monthly_summary_log", []) or [])
         ):
+            event_titles = [str(entry.get("title", "")) for entry in pre_tournament_event_logs if entry.get("title")]
+            if not event_titles:
+                event_titles = ["一年期满，家族大比开场"]
             final_month_summary = str(
-                summarize_month(player, 12, events=["一年期满，家族大比开场"]).get("text", "")
+                summarize_month(player, 12, events=event_titles).get("text", "")
             )
     except Exception:
+        pre_tournament_event_logs = []
         final_month_summary = ""
 
     mind_intel_bonus = _intel_bonus(player, "mind")
@@ -347,6 +355,7 @@ def run_tournament(player: Player) -> Dict[str, object]:
         "equipment_score": equipment_score(player),
         "alchemy_reserve_bonus": alchemy_reserve_bonus,
         "reward_text": reward_text,
+        "pre_tournament_event_logs": pre_tournament_event_logs,
         "final_month_summary": final_month_summary,
     }
     if playtest_logging:
@@ -421,6 +430,11 @@ def format_tournament_result(result: Dict[str, object]) -> str:
     lines.append(str(result["summary"]))
     if result.get("reward_text"):
         lines.append(str(result["reward_text"]))
+    pre_tournament_logs = result.get("pre_tournament_event_logs", [])
+    if isinstance(pre_tournament_logs, list):
+        for log_entry in pre_tournament_logs:
+            if isinstance(log_entry, dict):
+                lines.append(format_chapter1_event_log(log_entry))
     if result.get("final_month_summary"):
         lines.append(str(result["final_month_summary"]))
     playtest_report = str(result.get("playtest_report", ""))

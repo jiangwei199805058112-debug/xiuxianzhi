@@ -1100,6 +1100,7 @@ def run_single_game(route: Dict[str, object], index: int, *, collect_log: bool =
         "chapter1_theft_event_count": theft_event_count,
         "chapter1_blackwater_event_count": blackwater_event_count,
         "chapter1_market_event_count": market_event_count,
+        "npc_reaction_count": len(getattr(player, "npc_reaction_log", []) or []),
         "action_log_count": len(getattr(player, "action_log", []) or []),
         "monthly_summary_count": len(getattr(player, "monthly_summary_log", []) or []),
         "spirit_field_harvest_count": player.spirit_field_harvest_count,
@@ -1203,6 +1204,7 @@ def summarize_route(route: Dict[str, object], runs: int, *, collect_log: bool = 
         "avg_chapter1_theft_event_count": average(records, "chapter1_theft_event_count"),
         "avg_chapter1_blackwater_event_count": average(records, "chapter1_blackwater_event_count"),
         "avg_chapter1_market_event_count": average(records, "chapter1_market_event_count"),
+        "avg_npc_reaction_count": average(records, "npc_reaction_count"),
         "avg_action_log_count": average(records, "action_log_count"),
         "avg_monthly_summary_count": average(records, "monthly_summary_count"),
         "avg_spirit_field_harvest_count": average(records, "spirit_field_harvest_count"),
@@ -1298,6 +1300,7 @@ def print_summary(summary: Dict[str, float | str | int]) -> None:
     print(f"平均盗术事件触发数：{summary['avg_chapter1_theft_event_count']:.1f}")
     print(f"平均黑水事件触发数：{summary['avg_chapter1_blackwater_event_count']:.1f}")
     print(f"平均坊市事件触发数：{summary['avg_chapter1_market_event_count']:.1f}")
+    print(f"平均NPC反应记录数：{summary['avg_npc_reaction_count']:.1f}")
     print(f"平均试玩行为日志条数：{summary['avg_action_log_count']:.1f}")
     print(f"平均月度总结条数：{summary['avg_monthly_summary_count']:.1f}")
     print(f"平均灵田收获次数：{summary['avg_spirit_field_harvest_count']:.1f}")

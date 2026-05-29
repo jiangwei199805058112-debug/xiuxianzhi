@@ -34,6 +34,11 @@ def load_chapter1_event_configs(base_dir: Path | None = None) -> Dict[str, Any]:
     return configs
 
 
+def load_chapter1_event_config(base_dir: Path | None = None) -> Dict[str, Any]:
+    """Compatibility alias for smoke checks and older helper scripts."""
+    return load_chapter1_event_configs(base_dir)
+
+
 def validate_chapter1_event_configs(configs: Dict[str, Any]) -> None:
     schema = configs.get("schema")
     if not isinstance(schema, dict):
@@ -83,6 +88,8 @@ def load_chapter1_event_pools(
 ) -> List[Dict[str, Any]]:
     root = _base_dir(base_dir)
     names = list(pool_names) if pool_names is not None else [
+        "story_events",
+        "npc_reaction_events",
         "farm_events",
         "alchemy_events",
         "mixed_events",

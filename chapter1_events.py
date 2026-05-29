@@ -18,6 +18,8 @@ CHAPTER1_MVP_EVENT_POOLS = (
     "blackwater_events",
     "market_events",
 )
+CHAPTER1_STORY_EVENT_POOLS = ("story_events",)
+CHAPTER1_NPC_REACTION_EVENT_POOLS = ("npc_reaction_events",)
 
 
 def initialize_chapter1_events(player: Any) -> None:
@@ -32,7 +34,7 @@ def process_chapter1_monthly_events(
     rng: Any = None,
     force: bool = False,
 ) -> List[Dict[str, Any]]:
-    """Process at most one low-risk chapter one MVP event for this month."""
+    """Process a small number of first chapter events for this month."""
     del interactive
     ensure_event_state(player)
     random_source = rng or random
@@ -43,31 +45,49 @@ def process_chapter1_monthly_events(
         monthly_rules = configs.get("monthly_rules", {})
         if not bool(monthly_rules.get("enabled", False)):
             return logs
-        if not force:
+
+        story_months = {int(month) for month in monthly_rules.get("story_months", []) or []}
+        if current_month in story_months:
+            logs.extend(_process_one_event(player, CHAPTER1_STORY_EVENT_POOLS, current_month, random_source))
+
+        npc_chance = float(monthly_rules.get("npc_reaction_trigger_chance", 0.0) or 0.0)
+        if force or random_source.random() <= npc_chance:
+            logs.extend(_process_one_event(player, CHAPTER1_NPC_REACTION_EVENT_POOLS, current_month, random_source))
+
+        if not logs:
             trigger_chance = float(monthly_rules.get("monthly_trigger_chance", 0.0) or 0.0)
-            if random_source.random() > trigger_chance:
-                return logs
-        candidates = [
-            event
-            for event in load_chapter1_event_pools(CHAPTER1_MVP_EVENT_POOLS)
-            if is_event_available(player, event, current_month)
-        ]
-        event = select_event(candidates, random_source)
-        if not event:
-            return logs
-        choice_id = str(event.get("auto_choice") or "")
-        if not choice_id:
-            choices = event.get("choices", [])
-            choice_id = str(choices[0].get("choice_id")) if choices else ""
-        if not choice_id:
-            return logs
-        choice = apply_event_choice(player, event, choice_id)
-        log_entry = _build_event_log_entry(event, choice, current_month)
-        player.monthly_event_log.append(log_entry)
-        logs.append(log_entry)
+            if force or random_source.random() <= trigger_chance:
+                logs.extend(_process_one_event(player, CHAPTER1_MVP_EVENT_POOLS, current_month, random_source))
         return logs
     finally:
         reset_monthly_action_counts(player)
+
+
+def _process_one_event(
+    player: Any,
+    pool_names: tuple[str, ...],
+    current_month: int,
+    random_source: Any,
+) -> List[Dict[str, Any]]:
+    candidates = [
+        event
+        for event in load_chapter1_event_pools(pool_names)
+        if is_event_available(player, event, current_month)
+    ]
+    event = select_event(candidates, random_source)
+    if not event:
+        return []
+    choice_id = str(event.get("auto_choice") or "")
+    if not choice_id:
+        choices = event.get("choices", [])
+        choice_id = str(choices[0].get("choice_id")) if choices else ""
+    if not choice_id:
+        return []
+    choice = apply_event_choice(player, event, choice_id)
+    log_entry = _build_event_log_entry(event, choice, current_month)
+    player.monthly_event_log.append(log_entry)
+    _record_npc_reaction(player, log_entry)
+    return [log_entry]
 
 
 def _build_event_log_entry(event: Dict[str, Any], choice: Dict[str, Any], current_month: int) -> Dict[str, Any]:
@@ -78,11 +98,31 @@ def _build_event_log_entry(event: Dict[str, Any], choice: Dict[str, Any], curren
         "event_type": str(event.get("event_type") or ""),
         "risk_level": str(event.get("risk_level") or ""),
         "route_tags": list(event.get("route_tags") or []),
+        "npc_ids": list(event.get("npc_ids") or []),
         "choice_id": str(choice.get("choice_id") or ""),
         "choice_label": str(choice.get("label") or ""),
         "text": str(event.get("text") or ""),
         "effect_summary": _effect_summary(choice.get("effects", [])),
     }
+
+
+def _record_npc_reaction(player: Any, log_entry: Dict[str, Any]) -> None:
+    event_type = str(log_entry.get("event_type", ""))
+    npc_ids = [str(npc) for npc in list(log_entry.get("npc_ids", []) or []) if str(npc)]
+    if not npc_ids and not (event_type.startswith("story_") or event_type.startswith("npc_")):
+        return
+    reaction = {
+        "month": int(log_entry.get("month", 0) or 0),
+        "event_id": str(log_entry.get("event_id", "")),
+        "title": str(log_entry.get("title", "")),
+        "event_type": event_type,
+        "npc_ids": npc_ids,
+        "summary": str(log_entry.get("effect_summary", "")),
+    }
+    rows = list(getattr(player, "npc_reaction_log", []) or [])
+    if not any(str(row.get("event_id", "")) == reaction["event_id"] for row in rows if isinstance(row, dict)):
+        rows.append(reaction)
+    player.npc_reaction_log = rows[-80:]
 
 
 def _effect_summary(effects: Any) -> str:
@@ -123,6 +163,9 @@ def get_chapter1_event_debug_summary(player: Any) -> Dict[str, Any]:
         "active_cooldown_count": len(getattr(player, "event_cooldowns", {}) or {}),
         "monthly_event_log_count": len(getattr(player, "monthly_event_log", []) or []),
         "monthly_action_counts": dict(getattr(player, "monthly_action_counts", {}) or {}),
+        "npc_reaction_count": len(getattr(player, "npc_reaction_log", []) or []),
+        "npc_flags": list(getattr(player, "npc_flags", []) or []),
+        "npc_impressions": dict(getattr(player, "npc_impressions", {}) or {}),
         "route_tags": list(getattr(player, "route_tags", []) or []),
         "risk_levels": {
             "theft_trace_level": int(getattr(player, "theft_trace_level", 0)),

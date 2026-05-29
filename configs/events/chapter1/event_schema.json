@@ -1,6 +1,6 @@
 {
-  "version": "v0.1.28",
-  "description": "第一章事件配置基础结构。v0.1.28 接入盗术、黑水与坊市风险事件池 MVP。",
+  "version": "v0.1.33",
+  "description": "第一章事件配置基础结构。v0.1.33 接入关键剧情与 NPC 反应事件池 MVP。",
   "required_event_fields": [
     "event_id",
     "title",

@@ -1288,7 +1288,7 @@ def monthly_event(player: Player) -> str:
     theft_text = resolve_monthly_theft_event(player)
     field_text = advance_spirit_fields(player)
     cultivation_pressure_text = _resolve_cultivation_pressure(player)
-    chapter1_event_logs = process_chapter1_monthly_events(player, player.month, interactive=False)
+    chapter1_event_logs = process_chapter1_monthly_events(player, month_for_summary, interactive=False)
     player.clamp()
     effects_text = "，".join(
         f"{ATTRIBUTE_NAMES.get(key, key)}{value:+d}" for key, value in event["effects"].items()

@@ -11,6 +11,9 @@ EVENT_STATE_DEFAULTS: Dict[str, Any] = {
     "event_cooldowns": {},
     "monthly_event_log": [],
     "monthly_action_counts": {},
+    "npc_reaction_log": [],
+    "npc_flags": [],
+    "npc_impressions": {},
     "route_tags": [],
     "theft_trace_level": 0,
     "theft_suspicion_level": 0,
@@ -38,11 +41,14 @@ EVENT_STATE_DEFAULTS: Dict[str, Any] = {
 EVENT_LIST_FIELDS = {
     "triggered_event_ids",
     "monthly_event_log",
+    "npc_reaction_log",
+    "npc_flags",
     "route_tags",
 }
 EVENT_DICT_FIELDS = {
     "event_cooldowns",
     "monthly_action_counts",
+    "npc_impressions",
 }
 EVENT_INT_FIELDS = {
     key
@@ -91,6 +97,12 @@ def ensure_event_state(player: Any) -> None:
     player.monthly_event_log = [
         dict(item) for item in list(getattr(player, "monthly_event_log", []) or []) if isinstance(item, dict)
     ]
+    player.npc_reaction_log = [
+        dict(item) for item in list(getattr(player, "npc_reaction_log", []) or []) if isinstance(item, dict)
+    ][-80:]
+    player.npc_flags = [
+        str(flag) for flag in list(getattr(player, "npc_flags", []) or []) if str(flag)
+    ][-120:]
     player.route_tags = [
         str(tag) for tag in list(getattr(player, "route_tags", []) or []) if str(tag)
     ]
@@ -113,6 +125,15 @@ def ensure_event_state(player: Any) -> None:
         if str(action) and _safe_int(count) > 0
     }
     _refresh_system_contacts(player)
+
+    impressions = getattr(player, "npc_impressions", {}) or {}
+    if not isinstance(impressions, dict):
+        impressions = {}
+    player.npc_impressions = {
+        str(npc): max(-100, min(_safe_int(value), 100))
+        for npc, value in impressions.items()
+        if str(npc)
+    }
 
     for key in EVENT_INT_FIELDS:
         setattr(player, key, max(0, _safe_int(getattr(player, key, 0))))

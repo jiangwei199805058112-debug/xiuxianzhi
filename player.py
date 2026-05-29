@@ -176,6 +176,9 @@ class Player:
     event_cooldowns: Dict[str, int] = field(default_factory=dict)
     monthly_event_log: List[Dict[str, Any]] = field(default_factory=list)
     monthly_action_counts: Dict[str, int] = field(default_factory=dict)
+    npc_reaction_log: List[Dict[str, Any]] = field(default_factory=list)
+    npc_flags: List[str] = field(default_factory=list)
+    npc_impressions: Dict[str, int] = field(default_factory=dict)
     action_log: List[Dict[str, Any]] = field(default_factory=list)
     monthly_summary_log: List[Dict[str, Any]] = field(default_factory=list)
     playtest_notes: List[str] = field(default_factory=list)
@@ -490,6 +493,12 @@ class Player:
             f"人情{self.social_mastery}｜盗术{self.theft_mastery}｜魔道{self.demonic_mastery}｜坊市{self.market_mastery}"
         )
         insight_text = "、".join(self.unlocked_insights) if self.unlocked_insights else "无"
+        npc_reaction_text = "、".join(self.npc_flags[-3:]) if self.npc_flags else "无"
+        npc_impression_text = "、".join(
+            f"{name}{value:+d}" for name, value in self.npc_impressions.items() if value
+        )
+        if not npc_impression_text:
+            npc_impression_text = "无"
         return (
             f"姓名：{self.name}｜年龄：{self.age}\n"
             f"出身：青岭沈家旁支\n"
@@ -512,6 +521,7 @@ class Player:
             f"盗术：等级{self.theft_skill}｜经验{self.theft_exp}｜尝试{self.theft_attempts}｜成功{self.theft_successes}｜失败{self.theft_failures}｜赔偿{self.theft_compensations}｜拒赔{self.theft_refusals}｜强逃{self.theft_escape_count}\n"
             f"盗术高阶：高阶尝试{self.theft_high_tier_attempts}｜高阶成功{self.theft_high_tier_successes}｜功法残页{self.stolen_manual_fragments}｜偷修为{self.stolen_cultivation_count}｜偷气运{self.stolen_luck_count}｜偷机缘{self.stolen_opportunity_count}｜偷因果{self.stolen_fate_count}｜偷寿元{self.stolen_lifespan_count}｜偷传承{self.stolen_inheritance_count}｜月末反噬{self.theft_monthly_event_count}\n"
             f"族人好感：{affection_text}\n"
+            f"NPC反应：近期{npc_reaction_text}｜印象{npc_impression_text}\n"
             f"隐藏：古玉瓶{jade_text}｜残破魂幡{banner_text}｜黑市暗号{'已持有' if self.has_black_market_password else '未持有'}｜追踪标记{self.tracking_marks}｜情意锁低阶｜炼魂次数{self.souls_refined}"
         )
 
@@ -646,6 +656,9 @@ class Player:
             "event_cooldowns": self.event_cooldowns,
             "monthly_event_log": self.monthly_event_log,
             "monthly_action_counts": self.monthly_action_counts,
+            "npc_reaction_log": self.npc_reaction_log,
+            "npc_flags": self.npc_flags,
+            "npc_impressions": self.npc_impressions,
             "action_log": self.action_log,
             "monthly_summary_log": self.monthly_summary_log,
             "playtest_notes": self.playtest_notes,
@@ -821,6 +834,9 @@ class Player:
             event_cooldowns=dict(data.get("event_cooldowns") or {}),
             monthly_event_log=list(data.get("monthly_event_log") or []),
             monthly_action_counts=dict(data.get("monthly_action_counts") or {}),
+            npc_reaction_log=list(data.get("npc_reaction_log") or []),
+            npc_flags=list(data.get("npc_flags") or []),
+            npc_impressions=dict(data.get("npc_impressions") or {}),
             action_log=list(data.get("action_log") or []),
             monthly_summary_log=list(data.get("monthly_summary_log") or []),
             playtest_notes=list(data.get("playtest_notes") or []),

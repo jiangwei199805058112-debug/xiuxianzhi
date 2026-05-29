@@ -1,0 +1,291 @@
+[
+  {
+    "event_id": "EVT_CH1_NPC_REACT_001_THEFT_WHISPER",
+    "title": "手脚传闻",
+    "event_type": "npc_reaction_theft",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 55,
+    "weight": 3,
+    "month_min": 3,
+    "month_max": 12,
+    "cooldown_months": 3,
+    "risk_level": "medium",
+    "route_tags": ["theft"],
+    "npc_ids": ["沈青雀", "家族同辈"],
+    "text": "旁支院里有人压低声音说起近日失物。没有证据落到你身上，但沈青雀远远看了你一眼，像是在提醒你别把风声当成无事。",
+    "auto_choice": "keep_clean",
+    "conditions": [
+      {
+        "any": [
+          {"field": "monthly_action_counts.theft", "op": ">=", "value": 1},
+          {"field": "theft_trace_level", "op": ">=", "value": 10},
+          {"field": "theft_suspicion_level", "op": ">=", "value": 8}
+        ]
+      }
+    ],
+    "choices": [
+      {
+        "choice_id": "keep_clean",
+        "label": "收敛痕迹",
+        "effects": [
+          {"field": "npc_flags", "op": "append", "value": "npc_theft_whisper_heard", "summary": "出现手脚传闻"},
+          {"field": "npc_impressions.沈青雀", "op": "add", "value": -1, "summary": "沈青雀提醒你收敛"},
+          {"field": "npc_impressions.家族同辈", "op": "add", "value": -1, "summary": "同辈有所怀疑"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_NPC_REACT_002_OLD_CHEN_MESSAGE",
+    "title": "旧货摊递话",
+    "event_type": "npc_reaction_theft",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 45,
+    "weight": 2,
+    "month_min": 4,
+    "month_max": 12,
+    "cooldown_months": 4,
+    "risk_level": "medium",
+    "route_tags": ["theft", "blackwater"],
+    "npc_ids": ["鬼手老陈"],
+    "text": "鬼手老陈让小厮递来一句话：会拿东西只是手快，拿完还能睡得稳，才算有本事。",
+    "auto_choice": "avoid_debt",
+    "conditions": [
+      {
+        "any": [
+          {"field": "theft_skill", "op": ">=", "value": 25},
+          {"field": "theft_attempts", "op": ">=", "value": 3},
+          {"field": "monthly_action_counts.theft", "op": ">=", "value": 1}
+        ]
+      }
+    ],
+    "choices": [
+      {
+        "choice_id": "avoid_debt",
+        "label": "只听不接",
+        "effects": [
+          {"field": "npc_flags", "op": "append", "value": "npc_old_chen_grey_message", "summary": "鬼手老陈递过灰道话"},
+          {"field": "npc_impressions.鬼手老陈", "op": "add", "value": 1, "summary": "鬼手老陈注意你"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_NPC_REACT_003_CLOSED_DOOR",
+    "title": "紧闭的门",
+    "event_type": "npc_reaction_orthodox",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 40,
+    "weight": 3,
+    "month_min": 3,
+    "month_max": 12,
+    "cooldown_months": 3,
+    "risk_level": "low",
+    "route_tags": ["orthodox"],
+    "npc_ids": ["家族同辈"],
+    "text": "同辈提起你时，先想到的是那扇常年紧闭的门。有人说你沉闷，也有人承认你修为确实扎实。",
+    "auto_choice": "stay_quiet",
+    "conditions": [
+      {"field": "monthly_action_counts.meditation", "op": ">=", "value": 2},
+      {"field": "monthly_action_counts.system_contacts", "op": "<=", "value": 2}
+    ],
+    "choices": [
+      {
+        "choice_id": "stay_quiet",
+        "label": "继续稳住根基",
+        "effects": [
+          {"field": "npc_flags", "op": "append", "value": "npc_closed_training_reputation", "summary": "同辈记住你的闭关"},
+          {"field": "npc_impressions.家族同辈", "op": "add", "value": 1, "summary": "同辈承认你修为稳"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_NPC_REACT_004_MARKET_VENDOR",
+    "title": "摊主记脸",
+    "event_type": "npc_reaction_market",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 35,
+    "weight": 3,
+    "month_min": 3,
+    "month_max": 12,
+    "cooldown_months": 3,
+    "risk_level": "low",
+    "route_tags": ["market_talisman"],
+    "npc_ids": ["坊市商人"],
+    "text": "坊市里有摊主认出了你，笑着问这回是要符箓、丹材，还是只想听几句风声。",
+    "auto_choice": "casual_reply",
+    "conditions": [
+      {
+        "any": [
+          {"field": "monthly_action_counts.market", "op": ">=", "value": 1},
+          {"field": "market_mastery", "op": ">=", "value": 8},
+          {"field": "heishui_market_spent", "op": ">=", "value": 20}
+        ]
+      }
+    ],
+    "choices": [
+      {
+        "choice_id": "casual_reply",
+        "label": "随口应付",
+        "effects": [
+          {"field": "npc_flags", "op": "append", "value": "npc_market_vendor_knows_player", "summary": "坊市商人记住了你"},
+          {"field": "npc_impressions.坊市商人", "op": "add", "value": 1, "summary": "坊市商人熟悉你"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_NPC_REACT_005_BLACKWATER_NOTICE",
+    "title": "黑水目光",
+    "event_type": "npc_reaction_blackwater",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 50,
+    "weight": 3,
+    "month_min": 4,
+    "month_max": 12,
+    "cooldown_months": 3,
+    "risk_level": "medium",
+    "route_tags": ["blackwater"],
+    "npc_ids": ["黑水人物", "鬼手老陈"],
+    "text": "黑水坊市里有人在你离开后抬了抬眼。那目光没有追上来，却像在记你的步幅和习惯。",
+    "auto_choice": "do_not_turn_back",
+    "conditions": [
+      {
+        "any": [
+          {"field": "monthly_action_counts.blackwater", "op": ">=", "value": 1},
+          {"field": "blackwater_trace_level", "op": ">", "value": 0},
+          {"field": "tracking_marks", "op": ">", "value": 0}
+        ]
+      }
+    ],
+    "choices": [
+      {
+        "choice_id": "do_not_turn_back",
+        "label": "不回头",
+        "effects": [
+          {"field": "npc_flags", "op": "append", "value": "npc_blackwater_attention", "summary": "黑水人物开始留意你"},
+          {"field": "npc_impressions.黑水人物", "op": "add", "value": 1, "summary": "黑水人物留意你"},
+          {"field": "npc_impressions.鬼手老陈", "op": "add", "value": 1, "summary": "鬼手老陈知道你来过"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_NPC_REACT_006_FAMILY_SUPPORT",
+    "title": "旁支提醒",
+    "event_type": "npc_reaction_social",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 35,
+    "weight": 2,
+    "month_min": 4,
+    "month_max": 12,
+    "cooldown_months": 4,
+    "risk_level": "low",
+    "route_tags": ["intel_social"],
+    "npc_ids": ["家族同辈", "沈怀安"],
+    "text": "你近日常与族人走动，旁支里终于有人肯多说几句：大比前别只盯分数，谁站在哪边也很要紧。",
+    "auto_choice": "listen_social_hint",
+    "conditions": [
+      {
+        "any": [
+          {"field": "monthly_action_counts.social", "op": ">=", "value": 1},
+          {"field": "social_mastery", "op": ">=", "value": 10},
+          {"field": "intel_social_path_level", "op": ">=", "value": 2}
+        ]
+      }
+    ],
+    "choices": [
+      {
+        "choice_id": "listen_social_hint",
+        "label": "听进心里",
+        "effects": [
+          {"field": "npc_flags", "op": "append", "value": "npc_family_peer_hint", "summary": "旁支同辈给过提醒"},
+          {"field": "npc_impressions.家族同辈", "op": "add", "value": 1, "summary": "同辈态度略好"},
+          {"field": "npc_impressions.沈怀安", "op": "add", "value": 1, "summary": "沈怀安认可你会做人"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_NPC_REACT_007_LIUTINGXIAN_PRESSURE",
+    "title": "听弦点破",
+    "event_type": "npc_reaction_intel",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 35,
+    "weight": 2,
+    "month_min": 9,
+    "month_max": 12,
+    "cooldown_months": 4,
+    "risk_level": "low",
+    "route_tags": ["intel_social"],
+    "npc_ids": ["柳听弦"],
+    "text": "风月楼外的灯影很薄。柳听弦没有问你来做什么，只说：你不是怕输，是怕这一年到最后没人看懂。",
+    "auto_choice": "hold_mind",
+    "conditions": [
+      {
+        "any": [
+          {"field": "heart_demon", "op": ">=", "value": 15},
+          {"field": "cultivation_pressure", "op": ">", "value": 0},
+          {"field": "monthly_action_counts.social", "op": ">=", "value": 1},
+          {"field": "intelligence", "op": ">=", "value": 10}
+        ]
+      }
+    ],
+    "choices": [
+      {
+        "choice_id": "hold_mind",
+        "label": "稳住心绪",
+        "effects": [
+          {"field": "npc_flags", "op": "append", "value": "npc_liutingxian_read_pressure", "summary": "柳听弦点破过压力"},
+          {"field": "npc_impressions.柳听弦", "op": "add", "value": 1, "summary": "柳听弦读懂你的压力"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_NPC_REACT_008_OPPONENTS_WATCH",
+    "title": "对手侧目",
+    "event_type": "npc_reaction_tournament",
+    "chapter": 1,
+    "repeatable": true,
+    "priority": 40,
+    "weight": 2,
+    "month_min": 11,
+    "month_max": 12,
+    "cooldown_months": 3,
+    "risk_level": "low",
+    "route_tags": ["intel_social"],
+    "npc_ids": ["大比对手"],
+    "text": "大比对手们开始交换你的名字。有人说你稳，有人说你杂，也有人只问你到底还藏了什么手段。",
+    "auto_choice": "ignore_watch",
+    "conditions": [
+      {
+        "any": [
+          {"field": "intelligence", "op": ">=", "value": 8},
+          {"field": "combat_exp", "op": ">=", "value": 12},
+          {"field": "foundation", "op": ">=", "value": 60},
+          {"field": "theft_trace_level", "op": ">=", "value": 10},
+          {"field": "blackwater_trace_level", "op": ">=", "value": 4}
+        ]
+      }
+    ],
+    "choices": [
+      {
+        "choice_id": "ignore_watch",
+        "label": "不露底牌",
+        "effects": [
+          {"field": "npc_flags", "op": "append", "value": "npc_tournament_opponents_watch", "summary": "大比对手开始留意你"},
+          {"field": "npc_impressions.大比对手", "op": "add", "value": 1, "summary": "对手开始研究你"}
+        ]
+      }
+    ]
+  }
+]

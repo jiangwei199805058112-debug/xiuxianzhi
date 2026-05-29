@@ -1,0 +1,173 @@
+[
+  {
+    "event_id": "EVT_CH1_STORY_M01_ENTRY_STATUS",
+    "title": "旁支入册",
+    "event_type": "story_month_key",
+    "chapter": 1,
+    "repeatable": false,
+    "priority": 80,
+    "weight": 1,
+    "month_min": 1,
+    "month_max": 1,
+    "cooldown_months": 0,
+    "risk_level": "low",
+    "route_tags": ["orthodox"],
+    "npc_ids": ["家族同辈"],
+    "text": "月末点册时，旁支子弟的名字被逐一念过。管事提醒你，一年后的家族大比不是传闻，而是旁支改命的第一道门槛。",
+    "auto_choice": "remember_goal",
+    "conditions": [],
+    "choices": [
+      {
+        "choice_id": "remember_goal",
+        "label": "记住大比目标",
+        "effects": [
+          {"field": "npc_flags", "op": "append", "value": "story_m01_tournament_goal_known", "summary": "记录大比目标"},
+          {"field": "npc_impressions.家族同辈", "op": "add", "value": 1, "summary": "家族同辈记住你"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_STORY_M03_GREY_RUMOR",
+    "title": "灰道初闻",
+    "event_type": "story_month_key",
+    "chapter": 1,
+    "repeatable": false,
+    "priority": 80,
+    "weight": 1,
+    "month_min": 3,
+    "month_max": 3,
+    "cooldown_months": 0,
+    "risk_level": "low",
+    "route_tags": ["theft", "blackwater"],
+    "npc_ids": ["沈青雀", "鬼手老陈"],
+    "text": "夜里回旁支小院时，你听见屋檐上有人轻笑，又听坊市方向传来黑水旧货的低声议论。灰道离你并不远，只是从没人把路摆在明面上。",
+    "auto_choice": "keep_distance",
+    "conditions": [],
+    "choices": [
+      {
+        "choice_id": "keep_distance",
+        "label": "先记在心里",
+        "effects": [
+          {"field": "npc_flags", "op": "append", "value": "story_m03_grey_rumor_heard", "summary": "听过灰道传闻"},
+          {"field": "npc_impressions.沈青雀", "op": "add", "value": 1, "summary": "沈青雀开始留意你"},
+          {"field": "npc_impressions.鬼手老陈", "op": "add", "value": 1, "summary": "鬼手老陈听过你的名字"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_STORY_M06_MIDYEAR_PRESSURE",
+    "title": "半年盘点",
+    "event_type": "story_month_key",
+    "chapter": 1,
+    "repeatable": false,
+    "priority": 80,
+    "weight": 1,
+    "month_min": 6,
+    "month_max": 6,
+    "cooldown_months": 0,
+    "risk_level": "low",
+    "route_tags": ["mixed"],
+    "npc_ids": ["沈怀安", "家族同辈"],
+    "text": "半年过去，旁支院里有人修为见长，有人灵石见底，也有人开始被各种传闻牵住脚步。沈怀安翻着册子，只说大比不会问你这一年有多忙，只看你最后拿得出什么。",
+    "auto_choice": "review_route",
+    "conditions": [],
+    "choices": [
+      {
+        "choice_id": "review_route",
+        "label": "复盘自身短板",
+        "effects": [
+          {"field": "npc_flags", "op": "append", "value": "story_m06_midyear_review", "summary": "完成半年盘点"},
+          {"field": "npc_impressions.沈怀安", "op": "add", "value": 1, "summary": "沈怀安注意你的进度"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_STORY_M09_FENGYUE_RUMOR",
+    "title": "风月楼传闻",
+    "event_type": "story_month_key",
+    "chapter": 1,
+    "repeatable": false,
+    "priority": 80,
+    "weight": 1,
+    "month_min": 9,
+    "month_max": 9,
+    "cooldown_months": 0,
+    "risk_level": "low",
+    "route_tags": ["intel_social", "blackwater"],
+    "npc_ids": ["柳听弦", "坊市商人"],
+    "text": "资格审核的风声渐紧，坊市茶棚里却有人提起风月楼的柳听弦。传闻她不卖刀剑，只听人心乱到什么地步。",
+    "auto_choice": "remember_name",
+    "conditions": [],
+    "choices": [
+      {
+        "choice_id": "remember_name",
+        "label": "记住柳听弦",
+        "effects": [
+          {"field": "npc_flags", "op": "append", "value": "story_m09_liutingxian_rumor", "summary": "听过柳听弦传闻"},
+          {"field": "npc_impressions.柳听弦", "op": "add", "value": 1, "summary": "柳听弦成为潜在线索"},
+          {"field": "npc_impressions.坊市商人", "op": "add", "value": 1, "summary": "坊市商人认得你"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_STORY_M11_TOURNAMENT_WIND",
+    "title": "大比风声紧",
+    "event_type": "story_month_key",
+    "chapter": 1,
+    "repeatable": false,
+    "priority": 80,
+    "weight": 1,
+    "month_min": 11,
+    "month_max": 11,
+    "cooldown_months": 0,
+    "risk_level": "low",
+    "route_tags": ["intel_social"],
+    "npc_ids": ["大比对手", "沈霜"],
+    "text": "演武场和药园都比往常安静。有人在补符，有人在藏伤，也有人盯着对手名单反复推演。沈霜从册页后抬眼，只提醒你别把最后一月浪费在慌乱上。",
+    "auto_choice": "steady_final_month",
+    "conditions": [],
+    "choices": [
+      {
+        "choice_id": "steady_final_month",
+        "label": "稳住最后一月",
+        "effects": [
+          {"field": "npc_flags", "op": "append", "value": "story_m11_tournament_wind", "summary": "大比前风声已起"},
+          {"field": "npc_impressions.大比对手", "op": "add", "value": 1, "summary": "大比对手开始注意你"},
+          {"field": "npc_impressions.沈霜", "op": "add", "value": 1, "summary": "沈霜给过提醒"}
+        ]
+      }
+    ]
+  },
+  {
+    "event_id": "EVT_CH1_STORY_M12_FINAL_REMINDER",
+    "title": "入场前一刻",
+    "event_type": "story_month_key",
+    "chapter": 1,
+    "repeatable": false,
+    "priority": 90,
+    "weight": 1,
+    "month_min": 12,
+    "month_max": 12,
+    "cooldown_months": 0,
+    "risk_level": "low",
+    "route_tags": ["mixed"],
+    "npc_ids": ["家族同辈", "大比对手"],
+    "text": "大比钟声响起前，旁支队伍在石阶下排成一列。有人看你的修为，有人看你的储物袋，也有人只看你这一年留下过哪些痕迹。",
+    "auto_choice": "enter_arena",
+    "conditions": [],
+    "choices": [
+      {
+        "choice_id": "enter_arena",
+        "label": "入场",
+        "effects": [
+          {"field": "npc_flags", "op": "append", "value": "story_m12_entered_tournament", "summary": "进入家族大比"},
+          {"field": "npc_impressions.大比对手", "op": "add", "value": 1, "summary": "对手记住你的入场"}
+        ]
+      }
+    ]
+  }
+]

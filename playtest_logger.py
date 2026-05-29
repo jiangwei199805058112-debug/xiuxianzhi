@@ -546,6 +546,7 @@ def summarize_run(player: Any, tournament_result: Dict[str, Any] | None = None) 
         "stage_profiles": _stage_profiles(entries),
         "benefit_sources": benefit_sources,
         "risk_sources": risk_sources,
+        "npc_reactions": _npc_reaction_summary(player),
         "tournament_analysis": _tournament_analysis(player, tournament_result),
         "next_run_suggestions": _next_run_suggestions(player, tournament_result, action_counts),
     }
@@ -576,6 +577,10 @@ def format_playtest_report(player: Any, tournament_result: Dict[str, Any] | None
     for row in list(summary.get("risk_sources", [])) or ["暂无明显风险来源记录。"]:
         lines.append(f"- {row}")
 
+    lines.append("本局 NPC 反应：")
+    for row in list(summary.get("npc_reactions", [])) or ["暂无明显 NPC 反应记录。"]:
+        lines.append(f"- {row}")
+
     lines.append("大比表现分析：")
     for row in list(summary.get("tournament_analysis", [])):
         lines.append(f"- {row}")
@@ -584,6 +589,39 @@ def format_playtest_report(player: Any, tournament_result: Dict[str, Any] | None
     for row in list(summary.get("next_run_suggestions", [])):
         lines.append(f"- {row}")
     return "\n".join(lines)
+
+
+def _npc_reaction_summary(player: Any) -> List[str]:
+    rows: List[str] = []
+    seen: set[str] = set()
+    for entry in list(getattr(player, "npc_reaction_log", []) or [])[-8:]:
+        if not isinstance(entry, dict):
+            continue
+        title = str(entry.get("title", ""))
+        npcs = [str(npc) for npc in list(entry.get("npc_ids", []) or []) if str(npc)]
+        npc_text = "、".join(npcs) if npcs else "旁人"
+        if not title:
+            continue
+        line = f"{npc_text}：{title}"
+        if line in seen:
+            continue
+        seen.add(line)
+        rows.append(line)
+    flags = [str(flag) for flag in list(getattr(player, "npc_flags", []) or [])[-5:] if str(flag)]
+    if flags:
+        rows.append("留下的反应标记：" + "、".join(flags))
+    impressions = {
+        str(npc): _safe_int(value)
+        for npc, value in dict(getattr(player, "npc_impressions", {}) or {}).items()
+        if _safe_int(value)
+    }
+    if impressions:
+        impression_text = "、".join(
+            f"{npc}{value:+d}"
+            for npc, value in sorted(impressions.items(), key=lambda item: (-abs(item[1]), item[0]))[:5]
+        )
+        rows.append("NPC 印象变化：" + impression_text)
+    return rows[:8]
 
 
 def _stage_profiles(entries: List[Dict[str, Any]]) -> List[str]:
